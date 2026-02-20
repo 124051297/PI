@@ -8,7 +8,7 @@ create table jerarquia (
 
 create table area (
     id_area int auto_increment primary key,
-    nombre varchar(100) not null
+    nombre varchar(100)  not null
 );
 
 create table categoria (
@@ -20,7 +20,6 @@ create table estado_producto (
     id_estado int auto_increment primary key,
     nombre_estado varchar(250) not null
 );
-
 
 create table empleados (
     id_empleado int auto_increment primary key,
@@ -86,6 +85,7 @@ create table salidas (
     foreign key (id_area) references area(id_area),
     foreign key (id_empleado) references empleados(id_empleado)
 );
+
 
 create table detalle_salidas(
 id_detalleS int primary key auto_increment,
