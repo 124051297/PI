@@ -5,12 +5,10 @@ create table jerarquia (
     id_jerarquia int auto_increment primary key,
     nombre varchar(255) not null
 );
-
 create table area (
     id_area int auto_increment primary key,
     nombre varchar(100)  not null
 );
-
 create table categoria (
     id_categoria int auto_increment primary key,
     nombre varchar(100) not null
