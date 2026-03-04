@@ -1,4 +1,4 @@
-# drop database controlinventario;
+drop database if exists controlinventario;
 create database controlinventario;
 use controlinventario;
 
@@ -9,7 +9,7 @@ create table roles (
 
 create table areas (
     id_area int auto_increment primary key,
-    nombre varchar(100)  not null
+    nombre varchar(100) not null
 );
 
 create table categorias (
@@ -29,7 +29,7 @@ create table empleados (
     nombre varchar(100),
     ap varchar(70),
     am varchar(70),
-    telefono int unique,
+    telefono varchar(20) unique,
     correo varchar(150) unique,
     foreign key (id_area) references areas(id_area),
     foreign key (id_rol) references roles(id_rol)
@@ -69,12 +69,12 @@ create table entradas (
 );
 
 create table detalle_entradas(
-id_detalleE int primary key auto_increment,
-id_producto int,
-cantidad int,
-id_entrada int,
-foreign key (id_entrada) references entradas(id_entrada),
-foreign key (id_producto) references productos(id_producto)
+    id_detalleE int primary key auto_increment,
+    id_producto int,
+    cantidad int,
+    id_entrada int,
+    foreign key (id_entrada) references entradas(id_entrada),
+    foreign key (id_producto) references productos(id_producto)
 );
 
 create table salidas (
@@ -87,13 +87,11 @@ create table salidas (
     foreign key (id_empleado) references empleados(id_empleado)
 );
 
-
 create table detalle_salidas(
-id_detalleS int primary key auto_increment,
-id_producto int,
-cantidad int,
-id_salida int,
-foreign key (id_salida) references salidas(id_salida),
-foreign key (id_producto) references productos(id_producto)
+    id_detalleS int primary key auto_increment,
+    id_producto int,
+    cantidad int,
+    id_salida int,
+    foreign key (id_salida) references salidas(id_salida),
+    foreign key (id_producto) references productos(id_producto)
 );
-
