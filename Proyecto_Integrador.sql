@@ -63,7 +63,7 @@ create table entradas (
     fecha datetime,
     id_empleado int,
     id_area int,
-    observaciones varchar(500),
+    observaciones text,
     foreign key (id_empleado) references empleados(id_empleado),
     foreign key (id_area) references areas(id_area)
 );
@@ -82,7 +82,7 @@ create table salidas (
     id_area int,
     id_empleado int,
     fecha datetime,
-    observaciones varchar(500),
+    observaciones text,
     foreign key (id_area) references areas(id_area),
     foreign key (id_empleado) references empleados(id_empleado)
 );
