@@ -56,9 +56,11 @@ Route::get('/db-test', function () {
         return response()->json([
             "mensaje" => "Conexión a base de datos correcta"
         ]);
+
     } catch (\Exception $e) {
         return response()->json([
             "mensaje" => "Error en la conexión a la base de datos"
         ]);
+        
     }
 });
