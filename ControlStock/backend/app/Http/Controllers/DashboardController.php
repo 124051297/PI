@@ -16,13 +16,26 @@ class DashboardController extends Controller
     public function stats()
     {
         $totalProductos = Producto::count();
-        $bajoStock = Producto::whereColumn('stock', '<', 'stock_minimo')->count();
+        
+        // Asumimos que el stock actual está en la tabla inventarios
+        // Si no hay inventario registrado, el stock es 0
+        $bajoStock = Producto::leftJoin('inventarios', 'productos.id_producto', '=', 'inventarios.id_producto')
+            ->where(function($query) {
+                $query->whereColumn('inventarios.stock_actual', '<', 'productos.stock_minimo')
+                      ->orWhereNull('inventarios.stock_actual');
+            })->count();
 
         $entradasHoy = Entrada::whereDate('fecha', Carbon::today())->count();
         $salidasHoy = Salida::whereDate('fecha', Carbon::today())->count();
 
         // Productos bajo stock (limit 5)
-        $productosBajoStock = Producto::whereColumn('stock', '<', 'stock_minimo')->take(5)->get();
+        $productosBajoStock = Producto::leftJoin('inventarios', 'productos.id_producto', '=', 'inventarios.id_producto')
+            ->where(function($query) {
+                $query->whereColumn('inventarios.stock_actual', '<', 'productos.stock_minimo')
+                      ->orWhereNull('inventarios.stock_actual');
+            })
+            ->select('productos.*', 'inventarios.stock_actual')
+            ->take(5)->get();
 
         // Movimientos recientes chart data
         // Simplified generic monthly movements

@@ -7,6 +7,16 @@ export function Salidas() {
     data: areas,
     fetchData: fetchAreas
   } = useFetch();
+  const {
+    data: productos,
+    fetchData: fetchProductos
+  } = useFetch();
+  const {
+    data: salidas,
+    fetchData: fetchSalidas,
+    setData: setSalidas
+  } = useFetch();
+  const [guardando, setGuardando] = useState(false);
   const [formData, setFormData] = useState({
     producto: '',
     cantidad: '',
@@ -14,51 +24,38 @@ export function Salidas() {
     empleado: '',
     fecha: new Date().toISOString().split('T')[0]
   });
+
   useEffect(() => {
-    // Cargar áreas al montar el componente
     fetchAreas(() => api.areas.getAll());
+    fetchProductos(() => api.productos.getAll());
+    fetchSalidas(() => api.salidas.getAll());
   }, []);
-  const handleSubmit = e => {
+
+  const handleSubmit = async e => {
     e.preventDefault();
-    console.log('Salida registrada:', formData);
-    // Aquí se procesaría la salida
-    setFormData({
-      producto: '',
-      cantidad: '',
-      area: '',
-      empleado: '',
-      fecha: new Date().toISOString().split('T')[0]
-    });
+    setGuardando(true);
+    try {
+      const nuevaSalida = await api.salidas.create({
+        id_producto: formData.producto,
+        cantidad: parseInt(formData.cantidad),
+        fecha: formData.fecha,
+        id_usuario: 1 
+      });
+      setSalidas([nuevaSalida, ...(salidas || [])]);
+      setFormData({
+        producto: '',
+        cantidad: '',
+        area: '',
+        empleado: '',
+        fecha: new Date().toISOString().split('T')[0]
+      });
+      alert('Salida registrada con éxito');
+    } catch (err) {
+      alert(err.message || 'Error al registrar la salida');
+    } finally {
+      setGuardando(false);
+    }
   };
-  const salidasRecientes = [{
-    id: 1,
-    producto: 'Cuadernos Profesionales',
-    cantidad: 30,
-    empleado: 'Juan Pérez',
-    fecha: '2026-02-19',
-    area: 'Almacén A'
-  }, {
-    id: 2,
-    producto: 'Bolígrafos Azules',
-    cantidad: 45,
-    empleado: 'María García',
-    fecha: '2026-02-18',
-    area: 'Almacén B'
-  }, {
-    id: 3,
-    producto: 'Hojas Blancas',
-    cantidad: 20,
-    empleado: 'Carlos López',
-    fecha: '2026-02-17',
-    area: 'Almacén A'
-  }, {
-    id: 4,
-    producto: 'Marcadores',
-    cantidad: 15,
-    empleado: 'Ana Martínez',
-    fecha: '2026-02-16',
-    area: 'Almacén C'
-  }];
   return <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Salidas de Inventario</h1>
@@ -88,12 +85,7 @@ export function Salidas() {
               producto: e.target.value
             })} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none" required>
                 <option value="">Seleccionar producto</option>
-                <option value="cuadernos">Cuadernos Profesionales</option>
-                <option value="boligrafos">Bolígrafos Azules</option>
-                <option value="hojas">Hojas Blancas</option>
-                <option value="carpetas">Carpetas Archivadoras</option>
-                <option value="postit">Post-it Adhesivos</option>
-                <option value="marcadores">Marcadores Permanentes</option>
+                {productos?.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
               </select>
             </div>
 
@@ -135,10 +127,7 @@ export function Salidas() {
               empleado: e.target.value
             })} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none" required>
                 <option value="">Seleccionar empleado</option>
-                <option value="juan">Juan Pérez</option>
-                <option value="maria">María García</option>
-                <option value="carlos">Carlos López</option>
-                <option value="ana">Ana Martínez</option>
+                <option value="1">Admin</option>
               </select>
             </div>
 
@@ -179,23 +168,25 @@ export function Salidas() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {salidasRecientes.map(salida => <tr key={salida.id} className="hover:bg-gray-50 transition-colors">
+                {salidas?.map(salida => <tr key={salida.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-4 text-sm text-gray-900">#{salida.id}</td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
                           <Package className="w-4 h-4 text-red-600" />
                         </div>
-                        <span className="text-sm font-medium text-gray-900">{salida.producto}</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {salida.productos?.[0]?.producto?.nombre || 'Producto'}
+                        </span>
                       </div>
                     </td>
                     <td className="px-4 py-4">
                       <span className="inline-flex px-3 py-1 text-sm font-medium bg-red-100 text-red-700 rounded-full">
-                        -{salida.cantidad}
+                        -{salida.productos?.[0]?.cantidad || 0}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-900">{salida.area}</td>
-                    <td className="px-4 py-4 text-sm text-gray-900">{salida.empleado}</td>
+                    <td className="px-4 py-4 text-sm text-gray-900">Almacén Central</td>
+                    <td className="px-4 py-4 text-sm text-gray-900">Usuario #{salida.id_usuario}</td>
                     <td className="px-4 py-4 text-sm text-gray-500">{salida.fecha}</td>
                   </tr>)}
               </tbody>

@@ -9,7 +9,12 @@ class DetalleEntrada extends Model
 {
     use HasFactory;
     protected $table = 'detalle_entradas';
-    protected $primaryKey = 'id_detalleE';
+    protected $primaryKey = 'id_detalle_entrada';
     public $timestamps = false;
     protected $guarded = [];
+
+    public function producto()
+    {
+        return $this->belongsTo(Producto::class, 'id_producto', 'id_producto');
+    }
 }

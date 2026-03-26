@@ -12,4 +12,21 @@ class Entrada extends Model
     protected $primaryKey = 'id_entrada';
     public $timestamps = false;
     protected $guarded = [];
+
+    protected $appends = ['id', 'productos'];
+
+    public function getIdAttribute()
+    {
+        return $this->attributes['id_entrada'];
+    }
+
+    public function detalles()
+    {
+        return $this->hasMany(DetalleEntrada::class, 'id_entrada', 'id_entrada');
+    }
+
+    public function getProductosAttribute()
+    {
+        return $this->detalles()->with('producto')->get();
+    }
 }

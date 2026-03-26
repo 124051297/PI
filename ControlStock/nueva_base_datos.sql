@@ -1,24 +1,21 @@
-CREATE DATABASE IF NOT EXISTS controlstock;
-USE controlstock;
+use controlstock
 
--- CATALOGO
-create table if not exists roles (
+create table roles (
     id_rol int auto_increment primary key,
     nombre varchar(100) not null
 );
 
-create table if not exists areas (
+create table areas (
     id_area int auto_increment primary key,
     nombre varchar(100) not null
 );
 
-create table if not exists categorias (
+create table categorias (
     id_categoria int auto_increment primary key,
     nombre varchar(100) not null
 );
 
--- EMPLEADOS
-create table if not exists empleados (
+create table empleados (
     id_empleado int auto_increment primary key,
     id_area int not null,
     id_rol int not null,
@@ -31,8 +28,7 @@ create table if not exists empleados (
     foreign key (id_rol) references roles(id_rol)
 );
 
--- USUARIOS
-create table if not exists usuarios (
+create table usuarios (
     id_usuario int auto_increment primary key,
     nombre_usuario varchar(50) unique not null,
     password varchar(255) not null,
@@ -41,8 +37,8 @@ create table if not exists usuarios (
     foreign key (id_empleado) references empleados(id_empleado)
 );
 
--- PRODUCTOS
-create table if not exists productos (
+
+create table productos (
     id_producto int auto_increment primary key,
     nombre_producto varchar(250) not null,
     precio_unitario decimal(10,2) not null,
@@ -51,8 +47,7 @@ create table if not exists productos (
     foreign key(id_categoria) references categorias(id_categoria)
 );
 
--- INVENTARIOS
-create table if not exists inventarios (
+create table inventarios (
     id_inventario int auto_increment primary key,
     id_producto int not null,
     id_area int not null,
@@ -62,8 +57,7 @@ create table if not exists inventarios (
     unique (id_producto, id_area)
 );
 
--- ENTRADAS
-create table if not exists entradas (
+create table entradas (
     id_entrada int auto_increment primary key,
     fecha datetime not null,
     id_empleado int not null,
@@ -73,7 +67,7 @@ create table if not exists entradas (
     foreign key (id_area) references areas(id_area)
 );
 
-create table if not exists detalle_entradas(
+create table detalle_entradas(
     id_detalleE int auto_increment primary key,
     id_entrada int not null,
     id_producto int not null,
@@ -82,8 +76,8 @@ create table if not exists detalle_entradas(
     foreign key (id_producto) references productos(id_producto)
 );
 
--- SALIDAS
-create table if not exists salidas (
+
+create table salidas (
     id_salida int auto_increment primary key,
     fecha datetime not null,
     id_empleado int not null,
@@ -93,7 +87,7 @@ create table if not exists salidas (
     foreign key (id_area) references areas(id_area)
 );
 
-create table if not exists detalle_salidas(
+create table detalle_salidas(
     id_detalleS int auto_increment primary key,
     id_salida int not null,
     id_producto int not null,
@@ -102,8 +96,7 @@ create table if not exists detalle_salidas(
     foreign key (id_producto) references productos(id_producto)
 );
 
--- BITACORA
-create table if not exists bitacora (
+create table bitacora (
     id_log int auto_increment primary key,
     accion varchar(255) not null,
     fecha datetime not null,
@@ -111,67 +104,48 @@ create table if not exists bitacora (
     foreign key (id_usuario) references usuarios(id_usuario)
 );
 
--- ROLES
-insert ignore into roles (nombre) values
+
+
+
+insert into roles (nombre) values
 ('Administrador'),
 ('Encargado'),
 ('Empleado');
 
--- AREAS
-insert ignore into areas (nombre) values
+insert into areas (nombre) values
 ('Papeleria'),
 ('Bodega'),
 ('Caja');
 
--- CATEGORIAS
-insert ignore into categorias (nombre) values
+
+insert into categorias (nombre) values
 ('Cuadernos'),
 ('Plumas'),
 ('Hojas');
 
--- EMPLEADOS
-insert ignore into empleados
+insert into empleados
 (id_area, id_rol, nombre, ap, am, telefono, correo)
 values
 (1,1,'Jose Maria','Jimenez','Olvera','4421111111','chema@controlstock.com'),
 (1,2,'Victor Manuel','De Vicente','Atanacio','4422222222','victor@controlstock.com'),
 (1,3,'Sebastian','Martinez','Marcial','4423333333','sebas@controlstock.com');
 
--- USUARIOS
-insert ignore into usuarios
+
+insert into usuarios
 (nombre_usuario, password, ultima_modificacion, id_empleado)
 values
 ('chema','admin123',curdate(),1),
 ('victor','encargado123',curdate(),2),
 ('sebas','empleado123',curdate(),3);
 
--- PRODUCTOS 
-insert ignore into productos (nombre_producto, precio_unitario, stock_minimo, id_categoria)
+insert into productos (nombre_producto, precio_unitario, stock_minimo, id_categoria)
 values
 ('Cuaderno Profesional', 50.00, 10, 1),
 ('Pluma Azul', 10.00, 20, 2),
 ('Hojas Blancas', 80.00, 15, 3);
 
--- INVENTARIO INICIAL
-insert ignore into inventarios (id_producto, id_area, stock_actual)
+insert into inventarios (id_producto, id_area, stock_actual)
 values
 (1,1,50),
 (2,1,100),
 (3,2,70);
-
--- TOKENS DE SANCTUM
-CREATE TABLE IF NOT EXISTS `personal_access_tokens` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `tokenable_type` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `tokenable_id` bigint unsigned NOT NULL,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `token` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `abilities` text COLLATE utf8mb4_unicode_ci,
-  `last_used_at` timestamp NULL DEFAULT NULL,
-  `expires_at` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `personal_access_tokens_token_unique` (`token`),
-  KEY `personal_access_tokens_tokenable_type_tokenable_id_index` (`tokenable_type`,`tokenable_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

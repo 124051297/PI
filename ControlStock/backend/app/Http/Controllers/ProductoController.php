@@ -14,7 +14,13 @@ class ProductoController extends Controller
 
     public function store(Request $request)
     {
-        $item = Producto::create($request->all());
+        $data = [
+            'nombre_producto' => $request->nombre,
+            'precio_unitario' => $request->precio,
+            'stock_minimo' => $request->stockMinimo,
+            'id_categoria' => $request->id_categoria ?? 1
+        ];
+        $item = Producto::create($data);
         return response()->json($item, 201);
     }
 
@@ -26,7 +32,13 @@ class ProductoController extends Controller
     public function update(Request $request, $id)
     {
         $item = Producto::findOrFail($id);
-        $item->update($request->all());
+        $data = [
+            'nombre_producto' => $request->nombre ?? $item->nombre_producto,
+            'precio_unitario' => $request->precio ?? $item->precio_unitario,
+            'stock_minimo' => $request->stockMinimo ?? $item->stock_minimo,
+            'id_categoria' => $request->id_categoria ?? $item->id_categoria
+        ];
+        $item->update($data);
         return response()->json($item);
     }
 

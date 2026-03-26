@@ -13,6 +13,48 @@ class Producto extends Model
     public $timestamps = false;
     protected $guarded = [];
 
+    protected $appends = ['id', 'nombre', 'precio', 'stockMinimo', 'stock', 'area', 'codigo'];
+
+    public function getIdAttribute()
+    {
+        return $this->attributes['id_producto'];
+    }
+
+    public function getNombreAttribute()
+    {
+        return $this->attributes['nombre_producto'];
+    }
+
+    public function getPrecioAttribute()
+    {
+        return (float) $this->attributes['precio_unitario'];
+    }
+
+    public function getStockMinimoAttribute()
+    {
+        return $this->attributes['stock_minimo'];
+    }
+
+    public function getStockAttribute()
+    {
+        $inv = \App\Models\Inventario::where('id_producto', $this->id_producto)->first();
+        return $inv ? $inv->stock_actual : 0;
+    }
+
+    public function getAreaAttribute()
+    {
+        // Simplificado: Buscar el área a través de la categoría o similar
+        // Por ahora devolvemos un string genérico o buscamos en la tabla areas
+        $categoria = \App\Models\Categoria::find($this->id_categoria);
+        return $categoria ? $categoria->nombre : 'Sin Área';
+    }
+
+    public function getCodigoAttribute()
+    {
+        // Como no hay columna codigo, generamos uno basado en el id
+        return 'PROD-' . str_pad($this->id_producto, 3, '0', STR_PAD_LEFT);
+    }
+
     protected static function booted()
     {
         static::created(function ($producto) {

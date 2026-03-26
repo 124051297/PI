@@ -14,7 +14,15 @@ class EmpleadoController extends Controller
 
     public function store(Request $request)
     {
-        $item = Empleado::create($request->all());
+        $rolMap = ['administrador' => 1, 'encargado' => 2, 'empleado' => 3];
+        $data = [
+            'nombre' => $request->nombre,
+            'correo' => $request->email ?? $request->correo,
+            'telefono' => $request->telefono,
+            'id_rol' => $rolMap[$request->rol] ?? 3,
+            'id_area' => $request->id_area ?? 1
+        ];
+        $item = Empleado::create($data);
         return response()->json($item, 201);
     }
 
@@ -26,7 +34,15 @@ class EmpleadoController extends Controller
     public function update(Request $request, $id)
     {
         $item = Empleado::findOrFail($id);
-        $item->update($request->all());
+        $rolMap = ['administrador' => 1, 'encargado' => 2, 'empleado' => 3];
+        $data = [
+            'nombre' => $request->nombre ?? $item->nombre,
+            'correo' => $request->email ?? $request->correo ?? $item->correo,
+            'telefono' => $request->telefono ?? $item->telefono,
+            'id_rol' => $rolMap[$request->rol] ?? $item->id_rol,
+            'id_area' => $request->id_area ?? $item->id_area
+        ];
+        $item->update($data);
         return response()->json($item);
     }
 

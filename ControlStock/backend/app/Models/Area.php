@@ -12,4 +12,16 @@ class Area extends Model
     protected $primaryKey = 'id_area';
     public $timestamps = false;
     protected $guarded = [];
+
+    protected $appends = ['id', 'nombre'];
+
+    public function getIdAttribute()
+    {
+        return $this->attributes['id_area'];
+    }
+
+    public function getNombreAttribute()
+    {
+        return $this->attributes['nombre'];
+    }
 }

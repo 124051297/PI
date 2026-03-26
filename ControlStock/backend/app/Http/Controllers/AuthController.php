@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Usuario;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +27,16 @@ class AuthController extends Controller
             ]);
         }
 
-        if ($request->password !== $user->password && !Hash::check($request->password, $user->password)) {
+        $passwordMatch = false;
+        if ($request->password === $user->password) {
+            $passwordMatch = true;
+        } elseif (Str::startsWith($user->password, ['$2y$', '$2a$'])) {
+            if (Hash::check($request->password, $user->password)) {
+                $passwordMatch = true;
+            }
+        }
+
+        if (!$passwordMatch) {
             throw ValidationException::withMessages([
                 'email' => ['Las credenciales proporcionadas son incorrectas.'],
             ]);

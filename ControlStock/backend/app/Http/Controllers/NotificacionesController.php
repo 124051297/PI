@@ -13,15 +13,22 @@ class NotificacionesController extends Controller
         $notificaciones = [];
         $idCounter = 1;
 
-        // Stock bajo
-        $productosBajoStock = Producto::whereColumn('stock', '<', 'stock_minimo')->get();
+        // Stock bajo detectado dinámicamente
+        $productosBajoStock = Producto::leftJoin('inventarios', 'productos.id_producto', '=', 'inventarios.id_producto')
+            ->where(function($query) {
+                $query->whereColumn('inventarios.stock_actual', '<', 'productos.stock_minimo')
+                      ->orWhereNull('inventarios.stock_actual');
+            })
+            ->select('productos.*', 'inventarios.stock_actual')
+            ->get();
+
         foreach ($productosBajoStock as $producto) {
             $notificaciones[] = [
-                'id' => $idCounter++,
+                'id' => 'lowstock_' . ($producto->id_producto ?? $idCounter++),
                 'tipo' => 'warning',
-                'titulo' => 'Stock bajo detectado',
-                'mensaje' => 'El producto "' . $producto->nombre_producto . '" tiene solo ' . $producto->stock . ' unidades en stock (Mínimo: '.$producto->stock_minimo.')',
-                'fecha' => now()->toDateTimeString(),
+                'titulo' => 'Alerta de Stock Bajo',
+                'mensaje' => 'El producto "' . $producto->nombre_producto . '" tiene solo ' . ($producto->stock_actual ?? 0) . ' unidades (Mínimo: '.$producto->stock_minimo.')',
+                'fecha' => now()->diffForHumans(),
                 'leida' => false
             ];
         }

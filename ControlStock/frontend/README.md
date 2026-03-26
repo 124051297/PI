@@ -1,7 +1,6 @@
-
-  # ControlStock Papelería Interface Design
-
-  This is a code bundle for ControlStock Papelería Interface Design. The original project is available at https://www.figma.com/design/91GOByDMDYXzGOrNSiRbzz/ControlStock-Papeler%C3%ADa-Interface-Design.
+  # ControlStock Papelería Interface Design Project
+  
+  Este proyecto contiene la implementación de la interfaz para ControlStock.
 
   ## Running the code
 
