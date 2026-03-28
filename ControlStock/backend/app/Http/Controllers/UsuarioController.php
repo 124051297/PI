@@ -16,36 +16,57 @@ class UsuarioController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->all();
-        if (isset($data['password'])) {
-            $data['password'] = Hash::make($data['password']);
-        }
-        $item = Usuario::create($data);
-        return response()->json($item, 201);
+        $validated = $request->validate([
+            'nombre_usuario' => 'required|string|unique:usuarios,nombre_usuario|max:50',
+            'password' => 'required|string|min:6',
+            'id_empleado' => 'required|exists:empleados,id_empleado'
+        ]);
+
+        $item = Usuario::create([
+            'nombre_usuario' => $validated['nombre_usuario'],
+            'password' => Hash::make($validated['password']),
+            'id_empleado' => $validated['id_empleado'],
+            'ultima_modificacion' => now()
+        ]);
+
+        return response()->json([
+            'message' => 'Usuario creado exitosamente',
+            'data' => $item
+        ], 201);
     }
 
     public function show($id)
     {
-        return response()->json(Usuario::findOrFail($id));
+        $usuario = Usuario::with('empleado')->findOrFail($id);
+        return response()->json(['data' => $usuario]);
     }
 
     public function update(Request $request, $id)
     {
         $item = Usuario::findOrFail($id);
-        $data = $request->all();
-        if (isset($data['password']) && !empty($data['password'])) {
-            $data['password'] = Hash::make($data['password']);
-        } else {
-            unset($data['password']);
+        
+        $validated = $request->validate([
+            'nombre_usuario' => 'sometimes|string|max:50|unique:usuarios,nombre_usuario,'.$id.',id_usuario',
+            'password' => 'sometimes|nullable|string|min:6',
+            'id_empleado' => 'sometimes|exists:empleados,id_empleado'
+        ]);
+
+        $updateData = [];
+        if (isset($validated['nombre_usuario'])) $updateData['nombre_usuario'] = $validated['nombre_usuario'];
+        if (isset($validated['id_empleado'])) $updateData['id_empleado'] = $validated['id_empleado'];
+        if (!empty($validated['password'])) {
+            $updateData['password'] = Hash::make($validated['password']);
         }
-        $item->update($data);
+        $updateData['ultima_modificacion'] = now();
+
+        $item->update($updateData);
 
         $empleado = \App\Models\Empleado::find($item->id_empleado);
         if ($empleado) {
             $empleadoData = [];
-            if (isset($data['nombre'])) $empleadoData['nombre'] = $data['nombre'];
-            if (isset($data['email'])) $empleadoData['correo'] = $data['email'];
-            if (isset($data['telefono'])) $empleadoData['telefono'] = $data['telefono'];
+            if (isset($request->nombre)) $empleadoData['nombre'] = $request->nombre;
+            if (isset($request->email)) $empleadoData['correo'] = $request->email;
+            if (isset($request->telefono)) $empleadoData['telefono'] = $request->telefono;
             if (!empty($empleadoData)) $empleado->update($empleadoData);
         }
 

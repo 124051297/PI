@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Producto;
-use App\Models\HistorialMovimiento;
+use App\Models\Bitacora;
 
 class ReporteController extends Controller
 {
@@ -14,18 +14,18 @@ class ReporteController extends Controller
         $inicio = $request->query('inicio');
         $fin = $request->query('fin');
 
-        $query = HistorialMovimiento::query()->orderBy('created_at', 'desc');
+        $query = Bitacora::query()->orderBy('fecha', 'desc');
 
         if ($tipo === 'semana') {
-            $query->where('created_at', '>=', now()->subWeek());
+            $query->where('fecha', '>=', now()->subWeek());
         } elseif ($tipo === 'mes') {
-            $query->where('created_at', '>=', now()->subMonth());
+            $query->where('fecha', '>=', now()->subMonth());
         } elseif ($tipo === 'ano') {
-            $query->where('created_at', '>=', now()->subYear());
+            $query->where('fecha', '>=', now()->subYear());
         } elseif ($tipo === 'especifico' && $inicio) {
-            $query->whereDate('created_at', $inicio);
+            $query->whereDate('fecha', $inicio);
         } elseif ($tipo === 'rango' && $inicio && $fin) {
-            $query->whereBetween('created_at', [$inicio . ' 00:00:00', $fin . ' 23:59:59']);
+            $query->whereBetween('fecha', [$inicio . ' 00:00:00', $fin . ' 23:59:59']);
         }
 
         $movimientos = $query->get();

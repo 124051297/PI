@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\HistorialMovimiento;
+use App\Models\Bitacora;
 use App\Models\Producto;
 
 class NotificacionesController extends Controller
@@ -33,29 +33,15 @@ class NotificacionesController extends Controller
             ];
         }
 
-        // Historial (últimos 10 eventos relevantes)
-        $historial = HistorialMovimiento::orderBy('created_at', 'desc')->take(10)->get();
+        // Historial (últimos 10 eventos relevantes) de Bitacora
+        $historial = Bitacora::orderBy('fecha', 'desc')->take(10)->get();
         foreach ($historial as $mov) {
-            $tipo = 'info';
-            $titulo = 'Actividad en el Sistema';
-
-            if ($mov->accion === 'Crear') {
-                $tipo = 'success';
-                $titulo = $mov->entidad === 'Producto' ? 'Nuevo producto agregado' : 'Registro de nuevo ' . strtolower($mov->entidad);
-            } elseif ($mov->accion === 'Eliminar') {
-                $tipo = 'alert';
-                $titulo = $mov->entidad === 'Producto' ? 'Producto eliminado' : strtolower($mov->entidad) . ' eliminado';
-            } elseif ($mov->accion === 'Modificar') {
-                $tipo = 'info';
-                $titulo = 'Modificación de ' . strtolower($mov->entidad);
-            }
-
             $notificaciones[] = [
-                'id' => $idCounter++,
-                'tipo' => $tipo,
-                'titulo' => $titulo,
-                'mensaje' => $mov->detalles . ' (por ' . $mov->usuario . ')',
-                'fecha' => $mov->created_at,
+                'id' => 'log_' . ($mov->id_log ?? $idCounter++),
+                'tipo' => 'info',
+                'titulo' => 'Actividad: ' . $mov->accion,
+                'mensaje' => $mov->accion,
+                'fecha' => $mov->fecha,
                 'leida' => false
             ];
         }

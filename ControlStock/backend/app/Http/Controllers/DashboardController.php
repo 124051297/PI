@@ -8,7 +8,7 @@ use App\Models\Entrada;
 use App\Models\Salida;
 use App\Models\DetalleEntrada;
 use App\Models\DetalleSalida;
-use App\Models\HistorialMovimiento;
+use App\Models\Bitacora;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -56,7 +56,7 @@ class DashboardController extends Controller
             ];
         }
 
-        $actividadReciente = HistorialMovimiento::orderBy('created_at', 'desc')->take(5)->get();
+        $actividadReciente = Bitacora::orderBy('fecha', 'desc')->take(5)->get();
 
         $pieData = [
             ['name' => 'Stock Normal', 'value' => $totalProductos - $bajoStock],

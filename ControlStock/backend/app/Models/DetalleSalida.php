@@ -9,7 +9,7 @@ class DetalleSalida extends Model
 {
     use HasFactory;
     protected $table = 'detalle_salidas';
-    protected $primaryKey = 'id_detalle_salida';
+    protected $primaryKey = 'id_detalleS';
     public $timestamps = false;
     protected $guarded = [];
 

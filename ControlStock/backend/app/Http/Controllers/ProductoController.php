@@ -14,32 +14,54 @@ class ProductoController extends Controller
 
     public function store(Request $request)
     {
-        $data = [
-            'nombre_producto' => $request->nombre,
-            'precio_unitario' => $request->precio,
-            'stock_minimo' => $request->stockMinimo,
-            'id_categoria' => $request->id_categoria ?? 1
-        ];
-        $item = Producto::create($data);
-        return response()->json($item, 201);
+        $validated = $request->validate([
+            'nombre' => 'required|string|max:250',
+            'precio' => 'required|numeric|min:0',
+            'stockMinimo' => 'required|integer|min:0',
+            'id_categoria' => 'required|exists:categorias,id_categoria'
+        ]);
+
+        $item = Producto::create([
+            'nombre_producto' => $validated['nombre'],
+            'precio_unitario' => $validated['precio'],
+            'stock_minimo' => $validated['stockMinimo'],
+            'id_categoria' => $validated['id_categoria']
+        ]);
+
+        return response()->json([
+            'message' => 'Producto creado exitosamente',
+            'data' => $item
+        ], 201);
     }
 
     public function show($id)
     {
-        return response()->json(Producto::findOrFail($id));
+        $producto = Producto::findOrFail($id);
+        return response()->json(['data' => $producto]);
     }
 
     public function update(Request $request, $id)
     {
         $item = Producto::findOrFail($id);
-        $data = [
-            'nombre_producto' => $request->nombre ?? $item->nombre_producto,
-            'precio_unitario' => $request->precio ?? $item->precio_unitario,
-            'stock_minimo' => $request->stockMinimo ?? $item->stock_minimo,
-            'id_categoria' => $request->id_categoria ?? $item->id_categoria
-        ];
-        $item->update($data);
-        return response()->json($item);
+        
+        $validated = $request->validate([
+            'nombre' => 'sometimes|string|max:250',
+            'precio' => 'sometimes|numeric|min:0',
+            'stockMinimo' => 'sometimes|integer|min:0',
+            'id_categoria' => 'sometimes|exists:categorias,id_categoria'
+        ]);
+
+        $item->update([
+            'nombre_producto' => $validated['nombre'] ?? $item->nombre_producto,
+            'precio_unitario' => $validated['precio'] ?? $item->precio_unitario,
+            'stock_minimo' => $validated['stockMinimo'] ?? $item->stock_minimo,
+            'id_categoria' => $validated['id_categoria'] ?? $item->id_categoria
+        ]);
+
+        return response()->json([
+            'message' => 'Producto actualizado exitosamente',
+            'data' => $item
+        ]);
     }
 
     public function destroy($id)

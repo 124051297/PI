@@ -59,34 +59,28 @@ class Producto extends Model
     {
         static::created(function ($producto) {
             $user = \Illuminate\Support\Facades\Auth::user();
-            \App\Models\HistorialMovimiento::create([
-                'usuario' => $user ? ($user->nombre ?? $user->usuario ?? 'Desconocido') : 'Sistema',
-                'accion' => 'Crear',
-                'entidad' => 'Producto',
-                'entidad_id' => $producto->id_producto,
-                'detalles' => 'Producto agregado: ' . ($producto->nombre_producto ?? 'N/A')
+            \App\Models\Bitacora::create([
+                'accion' => 'Crear Producto: ' . ($producto->nombre_producto ?? 'N/A'),
+                'fecha' => now(),
+                'id_usuario' => $user->id_usuario ?? null
             ]);
         });
 
         static::updated(function ($producto) {
             $user = \Illuminate\Support\Facades\Auth::user();
-            \App\Models\HistorialMovimiento::create([
-                'usuario' => $user ? ($user->nombre ?? $user->usuario ?? 'Desconocido') : 'Sistema',
-                'accion' => 'Modificar',
-                'entidad' => 'Producto',
-                'entidad_id' => $producto->id_producto,
-                'detalles' => 'Producto modificado: ' . ($producto->nombre_producto ?? 'N/A')
+            \App\Models\Bitacora::create([
+                'accion' => 'Modificar Producto: ' . ($producto->nombre_producto ?? 'N/A'),
+                'fecha' => now(),
+                'id_usuario' => $user->id_usuario ?? null
             ]);
         });
 
         static::deleted(function ($producto) {
             $user = \Illuminate\Support\Facades\Auth::user();
-            \App\Models\HistorialMovimiento::create([
-                'usuario' => $user ? ($user->nombre ?? $user->usuario ?? 'Desconocido') : 'Sistema',
-                'accion' => 'Eliminar',
-                'entidad' => 'Producto',
-                'entidad_id' => $producto->id_producto,
-                'detalles' => 'Producto eliminado: ' . ($producto->nombre_producto ?? 'N/A')
+            \App\Models\Bitacora::create([
+                'accion' => 'Eliminar Producto: ' . ($producto->nombre_producto ?? 'N/A'),
+                'fecha' => now(),
+                'id_usuario' => $user->id_usuario ?? null
             ]);
         });
     }
