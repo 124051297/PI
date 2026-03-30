@@ -13,7 +13,7 @@ class Producto extends Model
     public $timestamps = false;
     protected $guarded = [];
 
-    protected $appends = ['id', 'nombre', 'precio', 'stockMinimo', 'stock', 'area', 'codigo'];
+    protected $appends = ['id', 'nombre', 'precio', 'stockMinimo', 'stock', 'categoria', 'codigo', 'ubicaciones_detalle'];
 
     public function getIdAttribute()
     {
@@ -37,22 +37,46 @@ class Producto extends Model
 
     public function getStockAttribute()
     {
-        $inv = \App\Models\Inventario::where('id_producto', $this->id_producto)->first();
-        return $inv ? $inv->stock_actual : 0;
+        return \App\Models\Inventario::where('id_producto', $this->id_producto)->sum('stock_actual');
     }
 
-    public function getAreaAttribute()
+    public function getCategoriaAttribute()
     {
-        // Simplificado: Buscar el área a través de la categoría o similar
-        // Por ahora devolvemos un string genérico o buscamos en la tabla areas
         $categoria = \App\Models\Categoria::find($this->id_categoria);
-        return $categoria ? $categoria->nombre : 'Sin Área';
+        return $categoria ? $categoria->nombre : 'Sin Categoría';
     }
 
     public function getCodigoAttribute()
     {
-        // Como no hay columna codigo, generamos uno basado en el id
         return 'PROD-' . str_pad($this->id_producto, 3, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Devuelve todas las ubicaciones donde se encuentra el producto
+     * con su área, pasillo, estante, nivel y stock en cada ubicación.
+     */
+    public function getUbicacionesDetalleAttribute()
+    {
+        $inventarios = \App\Models\Inventario::where('id_producto', $this->id_producto)->get();
+
+        $ubicaciones = [];
+        foreach ($inventarios as $inv) {
+            $ubicacion = \App\Models\Ubicacion::find($inv->id_ubicacion);
+            if ($ubicacion) {
+                $area = \App\Models\Area::find($ubicacion->id_area);
+                $ubicaciones[] = [
+                    'id_ubicacion' => $ubicacion->id_ubicacion,
+                    'area' => $area ? $area->nombre : 'Sin Área',
+                    'id_area' => $ubicacion->id_area,
+                    'pasillo' => $ubicacion->pasillo,
+                    'estante' => $ubicacion->estante,
+                    'nivel' => $ubicacion->nivel,
+                    'codigo_ubicacion' => $ubicacion->codigo_ubicacion,
+                    'stock_en_ubicacion' => $inv->stock_actual,
+                ];
+            }
+        }
+        return $ubicaciones;
     }
 
     protected static function booted()

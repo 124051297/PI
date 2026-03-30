@@ -1,22 +1,4 @@
--- ============================================================
---  CONTROLSTOCK - BASE DE DATOS COMPLETA
---  Ejecutar este archivo en MySQL Workbench para tener
---  la base de datos lista con todos los datos de prueba.
--- ============================================================
---
---  CONFIGURACIÓN DEL BACKEND (.env):
---  Cada compañero debe ajustar estos valores en el archivo
---  backend/.env según su instalación local de MySQL:
---
---    DB_CONNECTION=mysql
---    DB_HOST=127.0.0.1
---    DB_PORT=3306
---    DB_DATABASE=controlstock
---    DB_USERNAME=root
---    DB_PASSWORD=<TU_CONTRASEÑA_DE_MYSQL>
---
--- ============================================================
---
+
 --  USUARIOS DE ACCESO AL SISTEMA:
 --  +-------------+-----------------+------------------------+
 --  | Usuario     | Contraseña      | Rol                    |
@@ -26,20 +8,10 @@
 --  | sebas       | empleado123     | Empleado (Móvil)       |
 --  +-------------+-----------------+------------------------+
 --
--- ============================================================
-
-
--- =====================
--- 1. CREAR BASE DE DATOS
--- =====================
 DROP DATABASE IF EXISTS controlstock;
 CREATE DATABASE controlstock CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE controlstock;
-
-
--- =====================
--- 2. TABLAS DEL NEGOCIO
--- =====================
+=
 
 CREATE TABLE roles (
     id_rol INT AUTO_INCREMENT PRIMARY KEY,
@@ -158,10 +130,6 @@ CREATE TABLE bitacora (
 );
 
 
--- =======================================
--- 3. TABLAS REQUERIDAS POR LARAVEL
---    (Sanctum, Cache, Colas, Sesiones)
--- =======================================
 
 -- Sanctum: tokens de autenticación (login/logout)
 CREATE TABLE personal_access_tokens (
@@ -257,9 +225,7 @@ INSERT INTO migrations (migration, batch) VALUES
 ('2026_03_26_172637_create_base_schema', 1);
 
 
--- =====================
--- 4. DATOS INICIALES
--- =====================
+
 
 -- Roles
 INSERT INTO roles (nombre) VALUES

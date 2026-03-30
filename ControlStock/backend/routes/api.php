@@ -16,6 +16,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\ConfiguracionController;
 use App\Http\Controllers\NotificacionesController;
+use App\Http\Controllers\UbicacionController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -31,6 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('productos', ProductoController::class);
     Route::apiResource('entradas', EntradaController::class);
     Route::apiResource('salidas', SalidaController::class);
+    Route::apiResource('ubicaciones', UbicacionController::class);
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
     Route::get('/reportes', [ReporteController::class, 'generar']);
     
