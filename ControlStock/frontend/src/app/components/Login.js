@@ -56,7 +56,7 @@ export function Login() {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="w-5 h-5 text-gray-400" />
                 </div>
-                <input type="text" id="usuario" value={usuario} onChange={e => setUsuario(e.target.value)} disabled={isLoading} className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:bg-gray-100 disabled:cursor-not-allowed" placeholder="Ingresa tu usuario" required />
+                <input type="text" id="usuario" name="username" autoComplete="username" value={usuario} onChange={e => setUsuario(e.target.value)} disabled={isLoading} className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:bg-gray-100 disabled:cursor-not-allowed" placeholder="Ingresa tu usuario" required />
               </div>
             </div>
 
@@ -68,7 +68,7 @@ export function Login() {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="w-5 h-5 text-gray-400" />
                 </div>
-                <input type="password" id="contrasena" value={contrasena} onChange={e => setContrasena(e.target.value)} disabled={isLoading} className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:bg-gray-100 disabled:cursor-not-allowed" placeholder="Ingresa tu contraseña" required />
+                <input type="password" id="contrasena" name="password" autoComplete="current-password" value={contrasena} onChange={e => setContrasena(e.target.value)} disabled={isLoading} className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:bg-gray-100 disabled:cursor-not-allowed" placeholder="Ingresa tu contraseña" required />
               </div>
             </div>
 
@@ -82,17 +82,9 @@ export function Login() {
 
           {/* Footer */}
           <div className="mt-6 text-center">
-            <p className="text-xs text-gray-500 mb-4">
+            <p className="text-xs text-gray-500">
               Sistema de Gestión de Inventario v2.0
             </p>
-            <div className="p-3 bg-blue-50 rounded-lg">
-              <p className="text-xs font-medium text-blue-900 mb-2">Usuarios en Base de Datos:</p>
-              <div className="text-xs text-blue-700 space-y-1">
-                <p><strong>chema / admin123</strong> (Web - Administrador)</p>
-                <p><strong>victor / encargado123</strong> (Web - Encargado)</p>
-                <p><strong>sebas / empleado123</strong> (Móvil - Empleado)</p>
-              </div>
-            </div>
           </div>
         </div>
 

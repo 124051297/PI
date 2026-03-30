@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Package, AlertTriangle, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { useFetch } from '../hooks/useApi';
 import { api } from '../services/api';
 import { LoadingSpinner } from './common/LoadingSpinner';
@@ -124,37 +124,78 @@ export function Dashboard() {
 
         {/* Productos con bajo stock */}
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Proporción de Stock</h2>
-          <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
-              <Pie
-                data={stats.pieData || []}
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={5}
-                dataKey="value"
-              >
-                {(stats.pieData || []).map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={index === 0 ? '#3b82f6' : '#ef4444'} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-900">Proporción de Stock</h2>
+            <div className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-semibold">
+              Estado Crítico: {stats.bajoStock}
+            </div>
+          </div>
+          
+          <div className="relative h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={stats.pieData || []}
+                  innerRadius={70}
+                  outerRadius={90}
+                  paddingAngle={8}
+                  dataKey="value"
+                  animationDuration={1500}
+                >
+                  {(stats.pieData || []).map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.name === 'Bajo Stock' ? '#ef4444' : '#3b82f6'} 
+                      stroke="none"
+                    />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  itemStyle={{ fontSize: '12px' }}
+                />
+                <Legend verticalAlign="bottom" height={36}/>
+              </PieChart>
+            </ResponsiveContainer>
+            
+            {/* Texto central para el donut */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
+              <span className="text-2xl font-bold text-gray-900">
+                {stats.totalProductos > 0 
+                  ? Math.round((stats.bajoStock / stats.totalProductos) * 100) 
+                  : 0}%
+              </span>
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-500">
+                En Alerta
+              </span>
+            </div>
+          </div>
           <div className="space-y-3 mt-4">
-            <h3 className="text-sm font-bold text-gray-900 mb-2">Productos Bajo Stock</h3>
-            {stats.productosBajoStock.map((product, index) => <div key={index} className="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">{product.nombre}</p>
-                  <p className="text-xs text-gray-500">{product.area}</p>
+            <h3 className="text-sm font-bold text-gray-900 mb-2">Productos en Alerta</h3>
+            {stats.productosBajoStock && stats.productosBajoStock.length > 0 ? (
+              stats.productosBajoStock.map((product, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-red-50 border border-red-100 rounded-lg group hover:border-red-300 transition-colors">
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900">{product.nombre}</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-tighter">{product.area || 'Sin Área'}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-bold text-red-600 block leading-none">
+                      {product.stock_actual || 0}
+                    </span>
+                    <p className="text-[10px] text-gray-500 font-medium">unid. actuales</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-sm font-bold text-red-600">
-                    {product.stock}
-                  </span>
-                  <p className="text-xs text-gray-500">unidades</p>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center p-6 bg-green-50 rounded-lg border border-green-100 border-dashed">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                  <Package className="w-4 h-4 text-green-600" />
                 </div>
-              </div>)}
+                <p className="text-sm font-medium text-green-800 text-center">¡Todo al día!</p>
+                <p className="text-xs text-green-600 text-center">No hay productos con bajo stock.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
