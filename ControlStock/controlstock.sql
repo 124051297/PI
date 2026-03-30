@@ -1,4 +1,22 @@
-
+-- ============================================================
+--  CONTROLSTOCK - BASE DE DATOS COMPLETA
+--  Ejecutar este archivo en MySQL Workbench para tener
+--  la base de datos lista con todos los datos de prueba.
+-- ============================================================
+--
+--  CONFIGURACIÓN DEL BACKEND (.env):
+--  Cada compañero debe ajustar estos valores en el archivo
+--  backend/.env según su instalación local de MySQL:
+--
+--    DB_CONNECTION=mysql
+--    DB_HOST=127.0.0.1
+--    DB_PORT=3306
+--    DB_DATABASE=controlstock
+--    DB_USERNAME=root
+--    DB_PASSWORD=<TU_CONTRASEÑA_DE_MYSQL>
+--
+-- ============================================================
+--
 --  USUARIOS DE ACCESO AL SISTEMA:
 --  +-------------+-----------------+------------------------+
 --  | Usuario     | Contraseña      | Rol                    |
@@ -7,11 +25,21 @@
 --  | victor      | encargado123    | Encargado (Web)        |
 --  | sebas       | empleado123     | Empleado (Móvil)       |
 --  +-------------+-----------------+------------------------+
--- Eliminar y recrear la base de datos
+--
+-- ============================================================
+
+
+-- =====================
+-- 1. CREAR BASE DE DATOS
+-- =====================
 DROP DATABASE IF EXISTS controlstock;
 CREATE DATABASE controlstock CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE controlstock;
 
+
+-- =====================
+-- 2. TABLAS DEL NEGOCIO
+-- =====================
 
 CREATE TABLE roles (
     id_rol INT AUTO_INCREMENT PRIMARY KEY,
@@ -130,6 +158,109 @@ CREATE TABLE bitacora (
 );
 
 
+-- =======================================
+-- 3. TABLAS REQUERIDAS POR LARAVEL
+--    (Sanctum, Cache, Colas, Sesiones)
+-- =======================================
+
+-- Sanctum: tokens de autenticación (login/logout)
+CREATE TABLE personal_access_tokens (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tokenable_type VARCHAR(255) NOT NULL,
+    tokenable_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    token VARCHAR(64) NOT NULL UNIQUE,
+    abilities TEXT NULL,
+    last_used_at TIMESTAMP NULL,
+    expires_at TIMESTAMP NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    INDEX personal_access_tokens_tokenable_type_tokenable_id_index (tokenable_type, tokenable_id)
+);
+
+-- Cache de la aplicación
+CREATE TABLE cache (
+    `key` VARCHAR(255) PRIMARY KEY,
+    value MEDIUMTEXT NOT NULL,
+    expiration INT NOT NULL,
+    INDEX cache_expiration_index (expiration)
+);
+
+CREATE TABLE cache_locks (
+    `key` VARCHAR(255) PRIMARY KEY,
+    owner VARCHAR(255) NOT NULL,
+    expiration INT NOT NULL,
+    INDEX cache_locks_expiration_index (expiration)
+);
+
+-- Colas de trabajo (queue)
+CREATE TABLE jobs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    queue VARCHAR(255) NOT NULL,
+    payload LONGTEXT NOT NULL,
+    attempts TINYINT UNSIGNED NOT NULL,
+    reserved_at INT UNSIGNED NULL,
+    available_at INT UNSIGNED NOT NULL,
+    created_at INT UNSIGNED NOT NULL,
+    INDEX jobs_queue_index (queue)
+);
+
+CREATE TABLE job_batches (
+    id VARCHAR(255) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    total_jobs INT NOT NULL,
+    pending_jobs INT NOT NULL,
+    failed_jobs INT NOT NULL,
+    failed_job_ids LONGTEXT NOT NULL,
+    options MEDIUMTEXT NULL,
+    cancelled_at INT NULL,
+    created_at INT NOT NULL,
+    finished_at INT NULL
+);
+
+CREATE TABLE failed_jobs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    uuid VARCHAR(255) NOT NULL UNIQUE,
+    connection TEXT NOT NULL,
+    queue TEXT NOT NULL,
+    payload LONGTEXT NOT NULL,
+    exception LONGTEXT NOT NULL,
+    failed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Sesiones (por si se cambia SESSION_DRIVER a database)
+CREATE TABLE sessions (
+    id VARCHAR(255) PRIMARY KEY,
+    user_id BIGINT UNSIGNED NULL,
+    ip_address VARCHAR(45) NULL,
+    user_agent TEXT NULL,
+    payload LONGTEXT NOT NULL,
+    last_activity INT NOT NULL,
+    INDEX sessions_user_id_index (user_id),
+    INDEX sessions_last_activity_index (last_activity)
+);
+
+-- Tabla de migraciones de Laravel (evita errores de migrate)
+CREATE TABLE migrations (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    migration VARCHAR(255) NOT NULL,
+    batch INT NOT NULL
+);
+
+-- Registrar las migraciones como ya ejecutadas
+INSERT INTO migrations (migration, batch) VALUES
+('0001_01_01_000000_create_users_table', 1),
+('0001_01_01_000001_create_cache_table', 1),
+('0001_01_01_000002_create_jobs_table', 1),
+('2026_03_06_184218_create_personal_access_tokens_table', 1),
+('2026_03_07_204044_add_foto_perfil_to_usuarios_table', 1),
+('2026_03_26_172637_create_base_schema', 1);
+
+
+-- =====================
+-- 4. DATOS INICIALES
+-- =====================
+
 -- Roles
 INSERT INTO roles (nombre) VALUES
 ('Administrador'),
@@ -156,12 +287,16 @@ INSERT INTO empleados (id_area, id_rol, nombre, ap, am, telefono, correo) VALUES
 (1, 2, 'Victor Manuel', 'De Vicente','Atanacio',  '4422222222', 'victor@controlstock.com'),
 (1, 3, 'Sebastian',     'Martinez',  'Marcial',   '4423333333', 'sebas@controlstock.com');
 
+-- Usuarios con contraseñas hasheadas (bcrypt)
+-- chema    -> admin123
+-- victor   -> encargado123
+-- sebas    -> empleado123
 INSERT INTO usuarios (nombre_usuario, password, ultima_modificacion, id_empleado) VALUES
 ('chema',  '$2y$12$njQMMvPivkNaHi2qZCZfgeW.x.7aRR8kHaAjkVsUFxSXKcvRXTbKO', CURDATE(), 1),
 ('victor', '$2y$12$HLPDPqH/8F.yFXOlIiIVZeXSdP0n1emHBJXFYFi3U1ub8UNVqPvIm', CURDATE(), 2),
 ('sebas',  '$2y$12$WDiHxPY8DMTQ6mwp92IqruBMQYQBIq8mAmhiS/W1rjDNAFT.FoSf2', CURDATE(), 3);
 
--- Productos 
+-- Productos
 INSERT INTO productos (nombre_producto, precio_unitario, stock_minimo, id_categoria) VALUES
 ('Cuaderno Profesional 100 Hojas', 50.00,  10, 1),
 ('Cuaderno Universitario',          35.00,  15, 1),
@@ -185,16 +320,16 @@ INSERT INTO ubicaciones (id_area, pasillo, estante, nivel, codigo_ubicacion) VAL
 
 -- Inventario inicial (stock real de cada producto)
 INSERT INTO inventarios (id_producto, id_ubicacion, stock_actual) VALUES
-(1,  1, 50),   
-(2,  1, 30),   
-(3,  2, 100),  
-(4,  2, 80),   
-(5,  2, 60), 
-(6,  3, 40), 
-(7,  4, 25),  
-(8,  5, 150),  
-(9,  5, 120),  
-(10, 6, 20);   
+(1,  1, 50),
+(2,  1, 30),
+(3,  2, 100),
+(4,  2, 80),
+(5,  2, 60),
+(6,  3, 40),
+(7,  4, 25),
+(8,  5, 150),
+(9,  5, 120),
+(10, 6, 20);
 
 -- Entradas de ejemplo
 INSERT INTO entradas (fecha, id_empleado, id_area, observaciones) VALUES
