@@ -11,6 +11,10 @@ const getHeaders = () => {
 
 
 const handleResponse = async (response) => {
+    // 204 No Content (DELETE exitoso) no tiene body JSON
+    if (response.status === 204) {
+        return null;
+    }
     const data = await response.json();
     if (!response.ok) {
         throw new Error(data.message || 'Error en la petición');
@@ -160,6 +164,10 @@ export const api = {
     }
   },
   usuarios: {
+    getAll: async () => {
+      const response = await fetch(`${API_BASE_URL}/usuarios`, { headers: getHeaders() });
+      return await handleResponse(response);
+    },
     update: async (id, data) => {
       const response = await fetch(`${API_BASE_URL}/usuarios/${id}`, {
         method: 'PUT',
@@ -186,6 +194,32 @@ export const api = {
   notificaciones: {
     getAll: async () => {
       const response = await fetch(`${API_BASE_URL}/notificaciones`, { headers: getHeaders() });
+      return await handleResponse(response);
+    },
+    update: async (id, data) => {
+      const response = await fetch(`${API_BASE_URL}/notificaciones/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(data)
+      });
+      return await handleResponse(response);
+    },
+    delete: async (id) => {
+      const response = await fetch(`${API_BASE_URL}/notificaciones/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      });
+      return await handleResponse(response);
+    },
+    markAllAsRead: async () => {
+      const response = await fetch(`${API_BASE_URL}/notificaciones/mark-all-read`, {
+        method: 'POST',
+        headers: getHeaders()
+      });
+      return await handleResponse(response);
+    },
+    getUnreadCount: async () => {
+      const response = await fetch(`${API_BASE_URL}/notificaciones/unread-count`, { headers: getHeaders() });
       return await handleResponse(response);
     }
   }

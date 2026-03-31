@@ -10,6 +10,7 @@ import { Notificaciones } from './components/Notificaciones';
 import { Configuracion } from './components/Configuracion';
 import { PlaceholderPage } from './components/PlaceholderPage';
 import { Areas } from './components/Areas';
+import { Usuarios } from './components/Usuarios';
 import { Reportes } from './components/Reportes';
 import { HistorialMovimientos } from './components/HistorialMovimientos';
 import { Sidebar } from './components/Sidebar';
@@ -97,7 +98,7 @@ function AppRoutes() {
             <Configuracion />
           </MainLayout>} />
       <Route path="/usuarios" element={<MainLayout>
-            <PlaceholderPage title="Usuarios" description="Administración de usuarios del sistema" icon={UserCog} />
+            <Usuarios />
           </MainLayout>} />
       <Route path="/areas" element={<MainLayout>
             <Areas />

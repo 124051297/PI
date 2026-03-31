@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Pencil, Trash2, MapPin, X } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, MapPin, X, Calendar } from 'lucide-react';
 import { useFetch } from '../hooks/useApi';
 import { api } from '../services/api';
 import { LoadingSpinner } from './common/LoadingSpinner';
@@ -7,6 +7,7 @@ import { ErrorState } from './common/ErrorState';
 import { EmptyState } from './common/EmptyState';
 import { useToast } from '../hooks/useToast';
 import { ToastContainer } from './common/Toast';
+
 export function Areas() {
   const {
     data: areas,
@@ -30,95 +31,123 @@ export function Areas() {
   // Paginación
   const [paginaActual, setPaginaActual] = useState(1);
   const itemsPorPagina = 10;
+
   useEffect(() => {
     fetchData(() => api.areas.getAll());
   }, []);
-  const areasFiltradas = areas?.filter(area => area.nombre.toLowerCase().includes(busqueda.toLowerCase())) || [];
+
+  const areasFiltradas = areas?.filter(area => 
+    area.nombre.toLowerCase().includes(busqueda.toLowerCase())
+  ) || [];
 
   // Calcular paginación
   const totalPaginas = Math.ceil(areasFiltradas.length / itemsPorPagina);
   const indiceInicio = (paginaActual - 1) * itemsPorPagina;
   const indiceFin = indiceInicio + itemsPorPagina;
   const areasPaginadas = areasFiltradas.slice(indiceInicio, indiceFin);
+
   const handleEliminar = async id => {
-    if (!window.confirm('¿Estás seguro de eliminar esta área? Esta acción no se puede deshacer.')) {
+    const area = areas.find(a => (a.id_area || a.id) === id);
+    if (!window.confirm(`¿Estás seguro de eliminar el área "${area?.nombre}"? Esta acción no se puede deshacer.`)) {
       return;
     }
     setEliminando(id);
     try {
       await api.areas.delete(id);
-      setData(areas?.filter(a => a.id !== id) || null);
+      setData(areas?.filter(a => (a.id_area || a.id) !== id) || null);
       success('Área eliminada exitosamente');
     } catch (err) {
-      showError('Error al eliminar el área');
+      showError(err.message || 'Error al eliminar el área');
     } finally {
       setEliminando(null);
     }
   };
+
   const handleGuardar = async e => {
     e.preventDefault();
     setGuardando(true);
     const formData = new FormData(e.currentTarget);
-    const nuevoArea = {
-      nombre: formData.get('nombre')
+    
+    const payload = {
+      nombre: formData.get('nombre'),
+      pasillo: formData.get('pasillo'),
+      estante: formData.get('estante'),
+      nivel: formData.get('nivel')
     };
 
     // Validación
-    if (!nuevoArea.nombre.trim()) {
+    if (!payload.nombre.trim()) {
       showError('El nombre del área es requerido');
       setGuardando(false);
       return;
     }
+
     try {
       if (areaEditar) {
-        const updated = await api.areas.update(areaEditar.id, {
-          ...nuevoArea,
-          fechaCreacion: areaEditar.fechaCreacion
-        });
-        setData(areas?.map(a => a.id === areaEditar.id ? updated : a) || null);
+        const areaId = areaEditar.id_area || areaEditar.id;
+        const updated = await api.areas.update(areaId, payload);
+        setData(areas?.map(a => (a.id_area || a.id) === areaId ? { ...a, ...updated } : a) || null);
         success('Área actualizada exitosamente');
       } else {
-        const created = await api.areas.create(nuevoArea);
+        const created = await api.areas.create(payload);
         setData([...(areas || []), created]);
         success('Área creada exitosamente');
       }
-      setMostrarModal(false);
-      setAreaEditar(null);
+      cerrarModal();
     } catch (err) {
-      showError('Error al guardar el área');
+      showError(err.message || 'Error al guardar el área');
     } finally {
       setGuardando(false);
     }
   };
-  const abrirModalEditar = area => {
-    setAreaEditar(area);
-    setMostrarModal(true);
+
+  const abrirModalEditar = async area => {
+    try {
+      // Obtener detalle completo incluyendo ubicación inicial
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/areas/${area.id_area || area.id}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Accept': 'application/json'
+        }
+      });
+      const fullData = await response.json();
+      setAreaEditar(fullData);
+      setMostrarModal(true);
+    } catch (err) {
+      setAreaEditar(area);
+      setMostrarModal(true);
+    }
   };
+
   const abrirModalNuevo = () => {
     setAreaEditar(null);
     setMostrarModal(true);
   };
+
   const cerrarModal = () => {
     setMostrarModal(false);
     setAreaEditar(null);
   };
+
   if (loading) {
     return <div className="p-6 flex items-center justify-center min-h-[600px]">
         <LoadingSpinner size="lg" text="Cargando áreas..." />
       </div>;
   }
+
   if (error) {
     return <div className="p-6">
         <ErrorState message="Error al cargar las áreas" onRetry={() => fetchData(() => api.areas.getAll())} />
       </div>;
   }
+
   return <div className="p-6">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
       
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Gestión de Áreas</h1>
-        <p className="text-gray-600">Administra las áreas del negocio</p>
+        <p className="text-gray-600">Administra las áreas y sus ubicaciones en el almacén</p>
       </div>
 
       {/* Barra de acciones */}
@@ -162,9 +191,11 @@ export function Areas() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {areasPaginadas.map(area => <tr key={area.id} className="hover:bg-gray-50 transition-colors">
+                  {areasPaginadas.map(area => {
+                    const areaId = area.id_area || area.id;
+                    return <tr key={areaId} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 text-sm text-gray-900">
-                        #{area.id}
+                        #{areaId}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -175,23 +206,27 @@ export function Areas() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {new Date(area.fechaCreacion).toLocaleDateString('es-MX', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          {area.fecha_creacion ? new Date(area.fecha_creacion).toLocaleDateString('es-MX', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          }) : 'No disponible'}
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button onClick={() => abrirModalEditar(area)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
                             <Pencil className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleEliminar(area.id)} disabled={eliminando === area.id} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50" title="Eliminar">
-                            {eliminando === area.id ? <LoadingSpinner size="sm" /> : <Trash2 className="w-4 h-4" />}
+                          <button onClick={() => handleEliminar(areaId)} disabled={eliminando === areaId} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50" title="Eliminar">
+                            {eliminando === areaId ? <LoadingSpinner size="sm" /> : <Trash2 className="w-4 h-4" />}
                           </button>
                         </div>
                       </td>
-                    </tr>)}
+                    </tr>
+                  })}
                 </tbody>
               </table>
             </div>
@@ -207,11 +242,11 @@ export function Areas() {
                   Anterior
                 </button>
                 <div className="flex gap-1">
-                  {Array.from({
-              length: totalPaginas
-            }, (_, i) => i + 1).map(num => <button key={num} onClick={() => setPaginaActual(num)} className={`px-4 py-2 rounded-lg transition-colors ${paginaActual === num ? 'bg-blue-600 text-white' : 'border border-gray-300 hover:bg-gray-50'}`}>
+                  {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(num => (
+                    <button key={num} onClick={() => setPaginaActual(num)} className={`px-4 py-2 rounded-lg transition-colors ${paginaActual === num ? 'bg-blue-600 text-white' : 'border border-gray-300 hover:bg-gray-50'}`}>
                       {num}
-                    </button>)}
+                    </button>
+                  ))}
                 </div>
                 <button onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))} disabled={paginaActual === totalPaginas} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                   Siguiente
@@ -222,11 +257,19 @@ export function Areas() {
 
       {/* Modal para agregar/editar */}
       {mostrarModal && <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">
-                {areaEditar ? 'Editar Área' : 'Nueva Área'}
-              </h2>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {areaEditar ? 'Editar Área' : 'Nueva Área'}
+                </h2>
+                {areaEditar?.fecha_creacion && (
+                  <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                    <Calendar className="w-3 h-3" />
+                    Creado el {new Date(areaEditar.fecha_creacion).toLocaleString()}
+                  </p>
+                )}
+              </div>
               <button onClick={cerrarModal} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <X className="w-6 h-6" />
               </button>
@@ -238,7 +281,31 @@ export function Areas() {
                   <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-2">
                     Nombre del Área *
                   </label>
-                  <input type="text" id="nombre" name="nombre" defaultValue={areaEditar?.nombre} required placeholder="Ej: Papelería, Copias, Tecnología..." className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  <input type="text" id="nombre" name="nombre" defaultValue={areaEditar?.nombre} required placeholder="Ej: Papelería, Bodega..." className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                </div>
+
+                <div className="pt-2 border-t border-gray-100">
+                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Ubicación inicial {areaEditar ? '(Actualizar)' : ''}
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label htmlFor="pasillo" className="block text-xs font-medium text-gray-500 mb-1">Pasillo</label>
+                      <input type="text" id="pasillo" name="pasillo" defaultValue={areaEditar?.ubicacion_inicial?.pasillo} placeholder="Ej: A, B, 1..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="estante" className="block text-xs font-medium text-gray-500 mb-1">Estante</label>
+                        <input type="text" id="estante" name="estante" defaultValue={areaEditar?.ubicacion_inicial?.estante} placeholder="Ej: 1, 2..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label htmlFor="nivel" className="block text-xs font-medium text-gray-500 mb-1">Nivel / Altura</label>
+                        <input type="text" id="nivel" name="nivel" defaultValue={areaEditar?.ubicacion_inicial?.nivel} placeholder="Ej: 1, PB..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 

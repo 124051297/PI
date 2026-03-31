@@ -25,6 +25,16 @@ class Entrada extends Model
         return $this->hasMany(DetalleEntrada::class, 'id_entrada', 'id_entrada');
     }
 
+    public function empleado()
+    {
+        return $this->belongsTo(Empleado::class, 'id_empleado', 'id_empleado');
+    }
+
+    public function area()
+    {
+        return $this->belongsTo(Area::class, 'id_area', 'id_area');
+    }
+
     public function getProductosAttribute()
     {
         return $this->detalles()->with('producto')->get();

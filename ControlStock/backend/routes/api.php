@@ -17,6 +17,7 @@ use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\ConfiguracionController;
 use App\Http\Controllers\NotificacionesController;
 use App\Http\Controllers\UbicacionController;
+use App\Http\Controllers\BitacoraController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -42,6 +43,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Notificaciones
     Route::get('/notificaciones', [NotificacionesController::class, 'index']);
+    Route::put('/notificaciones/{id}', [NotificacionesController::class, 'update']);
+    Route::delete('/notificaciones/{id}', [NotificacionesController::class, 'destroy']);
+    Route::post('/notificaciones/mark-all-read', [NotificacionesController::class, 'markAllAsRead']);
+    Route::get('/notificaciones/unread-count', [NotificacionesController::class, 'unreadCount']);
+    
+    // Bitacora
+    Route::get('/bitacora', [BitacoraController::class, 'index']);
 });
 
 Route::get('/test', function () {

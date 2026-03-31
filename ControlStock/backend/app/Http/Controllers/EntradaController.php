@@ -3,87 +3,97 @@
 namespace App\Http\Controllers;
 
 use App\Models\Entrada;
+use App\Models\Ubicacion;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class EntradaController extends Controller
 {
     public function index()
     {
-        return response()->json(Entrada::all());
+        // Devolver entradas con detalles para que el frontend pueda mostrarlos
+        $entradas = Entrada::with('detalles.producto', 'empleado', 'area')->get();
+        return response()->json($entradas);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'id_producto' => 'required|exists:productos,id_producto',
-            'cantidad' => 'required|integer|min:1',
-            'id_ubicacion' => 'required|exists:ubicaciones,id_ubicacion',
-            'id_empleado' => 'sometimes|exists:empleados,id_empleado',
-            'id_area' => 'sometimes|exists:areas,id_area'
+            'id_empleado'  => 'required|exists:empleados,id_empleado',
+            'id_area'      => 'required|exists:areas,id_area',
+            'fecha'        => 'nullable|date',
+            'observaciones'=> 'nullable|string|max:500',
+            'items'        => 'required|array|min:1',
+            'items.*.id_producto' => 'required|exists:productos,id_producto',
+            'items.*.cantidad'    => 'required|integer|min:1',
+            'items.*.id_ubicacion'=> 'nullable|exists:ubicaciones,id_ubicacion',
         ]);
 
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $request) {
-            // 1. Crear la entrada principal (id_empleado, id_area, fecha)
+        return DB::transaction(function () use ($validated, $request) {
+            // 1. Crear la entrada principal
             $entrada = Entrada::create([
-                'id_empleado' => $validated['id_empleado'] ?? 1,
-                'id_area' => $validated['id_area'] ?? 1,
-                'fecha' => $request->fecha ?? now(),
-                'observaciones' => $request->observaciones
+                'id_empleado'  => $validated['id_empleado'],
+                'id_area'      => $validated['id_area'],
+                'fecha'        => $validated['fecha'] ?? now(),
+                'observaciones'=> $validated['observaciones'] ?? null,
             ]);
 
-            // 2. Crear el detalle
-            \App\Models\DetalleEntrada::create([
-                'id_entrada' => $entrada->id_entrada,
-                'id_producto' => $validated['id_producto'],
-                'cantidad' => $validated['cantidad']
-            ]);
+            foreach ($validated['items'] as $item) {
+                // 2. Determinar ubicación: proporcionada o primera de la área
+                $id_ubicacion = $item['id_ubicacion'] ?? null;
+                if (!$id_ubicacion) {
+                    $u = Ubicacion::where('id_area', $validated['id_area'])->first();
+                    $id_ubicacion = $u ? $u->id_ubicacion : (Ubicacion::first()->id_ubicacion ?? 1);
+                }
 
-            // 3. Actualizar o crear registro en inventarios (id_producto, id_ubicacion)
-            $id_ubicacion = $validated['id_ubicacion'];
-            $inventario = \App\Models\Inventario::where('id_producto', $validated['id_producto'])
-                ->where('id_ubicacion', $id_ubicacion)
-                ->first();
+                // 3. Crear el detalle
+                \App\Models\DetalleEntrada::create([
+                    'id_entrada'  => $entrada->id_entrada,
+                    'id_producto' => $item['id_producto'],
+                    'cantidad'    => $item['cantidad'],
+                ]);
 
-            if ($inventario) {
-                $inventario->stock_actual += $validated['cantidad'];
-                $inventario->save();
-            } else {
-                \App\Models\Inventario::create([
-                    'id_producto' => $validated['id_producto'],
-                    'id_ubicacion' => $id_ubicacion,
-                    'stock_actual' => $validated['cantidad']
+                // 4. Actualizar inventario
+                $inv = \App\Models\Inventario::firstOrCreate(
+                    ['id_producto' => $item['id_producto'], 'id_ubicacion' => $id_ubicacion],
+                    ['stock_actual' => 0]
+                );
+                $inv->stock_actual += $item['cantidad'];
+                $inv->save();
+
+                // 5. Bitácora (detalle individual)
+                \App\Models\Bitacora::create([
+                    'accion'     => "Entrada: {$item['cantidad']} uds del producto ID: {$item['id_producto']}",
+                    'fecha'      => now(),
+                    'id_usuario' => $request->id_usuario ?? 1,
                 ]);
             }
 
-            // 4. Registrar en bitacora
-            \App\Models\Bitacora::create([
-                'accion' => "Entrada de " . $validated['cantidad'] . " unidades del producto ID: " . $validated['id_producto'],
-                'fecha' => now(),
-                'id_usuario' => $request->id_usuario ?? 1
-            ]);
-
             return response()->json([
                 'message' => 'Entrada registrada exitosamente',
-                'data' => $entrada->load('detalles')
+                'data'    => $entrada->load('detalles.producto', 'area', 'empleado')
             ], 201);
         });
     }
 
     public function show($id)
     {
-        return response()->json(Entrada::findOrFail($id));
+        return response()->json(Entrada::with('detalles.producto', 'empleado', 'area')->findOrFail($id));
     }
 
     public function update(Request $request, $id)
     {
         $item = Entrada::findOrFail($id);
-        $item->update($request->all());
+        $item->update($request->only(['fecha', 'observaciones', 'id_empleado', 'id_area']));
         return response()->json($item);
     }
 
     public function destroy($id)
     {
-        Entrada::destroy($id);
+        $entrada = Entrada::findOrFail($id);
+        // Eliminar detalles primero
+        \App\Models\DetalleEntrada::where('id_entrada', $id)->delete();
+        $entrada->delete();
         return response()->json(null, 204);
     }
 }

@@ -13,7 +13,7 @@ class Producto extends Model
     public $timestamps = false;
     protected $guarded = [];
 
-    protected $appends = ['id', 'nombre', 'precio', 'stockMinimo', 'stock', 'categoria', 'codigo', 'ubicaciones_detalle'];
+    protected $appends = ['id', 'nombre', 'precio', 'stockMinimo', 'stock', 'categoria', 'codigo', 'area', 'ubicacion', 'ubicaciones_detalle'];
 
     public function getIdAttribute()
     {
@@ -44,6 +44,36 @@ class Producto extends Model
     {
         $categoria = \App\Models\Categoria::find($this->id_categoria);
         return $categoria ? $categoria->nombre : 'Sin Categoría';
+    }
+
+    /**
+     * Devuelve el nombre del área principal del producto
+     * (basado en la primera ubicación del inventario).
+     */
+    public function getAreaAttribute()
+    {
+        $inventario = \App\Models\Inventario::where('id_producto', $this->id_producto)->first();
+        if ($inventario) {
+            $ubicacion = \App\Models\Ubicacion::find($inventario->id_ubicacion);
+            if ($ubicacion) {
+                $area = \App\Models\Area::find($ubicacion->id_area);
+                return $area ? $area->nombre : 'Sin Área';
+            }
+        }
+        return 'Sin Área';
+    }
+
+    /**
+     * Devuelve el código de la ubicación principal del producto.
+     */
+    public function getUbicacionAttribute()
+    {
+        $inventario = \App\Models\Inventario::where('id_producto', $this->id_producto)->first();
+        if ($inventario) {
+            $ubicacion = \App\Models\Ubicacion::find($inventario->id_ubicacion);
+            return $ubicacion ? $ubicacion->codigo_ubicacion : 'Sin Ubicación';
+        }
+        return 'Sin Ubicación';
     }
 
     public function getCodigoAttribute()

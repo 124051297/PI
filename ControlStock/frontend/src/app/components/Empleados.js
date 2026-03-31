@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Search, Plus, Pencil, Trash2, User, Mail, Phone, Shield } from 'lucide-react';
+import { Users, Search, Plus, Pencil, Trash2, User, Mail, Phone, Shield, Lock } from 'lucide-react';
 import { useFetch } from '../hooks/useApi';
 import { api } from '../services/api';
 import { LoadingSpinner } from './common/LoadingSpinner';
@@ -13,26 +13,33 @@ export function Empleados() {
     fetchData,
     setData
   } = useFetch();
+
+  const {
+    data: areas,
+    fetchData: fetchAreas
+  } = useFetch();
+
   const [busqueda, setBusqueda] = useState('');
   const [mostrarModal, setMostrarModal] = useState(false);
   const [empleadoEditar, setEmpleadoEditar] = useState(null);
 
   useEffect(() => {
     fetchData(() => api.empleados.getAll());
+    fetchAreas(() => api.areas.getAll());
   }, []);
 
-  const empleadosFiltrados = empleados?.filter(emp => 
-    emp.nombre?.toLowerCase()?.includes(busqueda.toLowerCase()) || 
-    emp.usuario?.toLowerCase()?.includes(busqueda.toLowerCase()) || 
+  const empleadosFiltrados = empleados?.filter(emp =>
+    emp.nombre?.toLowerCase()?.includes(busqueda.toLowerCase()) ||
+    emp.nombre_usuario?.toLowerCase()?.includes(busqueda.toLowerCase()) ||
     (emp.email || emp.correo)?.toLowerCase()?.includes(busqueda.toLowerCase())
   ) || [];
+
   const getRolBadge = rol => {
     let rolStr = String(rol || '').toLowerCase();
-    // Mapa de id_rol a su respectivo texto si viene como número
     if (rolStr === '1') rolStr = 'administrador';
     if (rolStr === '2') rolStr = 'encargado';
     if (rolStr === '3') rolStr = 'empleado';
-    
+
     switch (rolStr) {
       case 'administrador':
         return { color: 'bg-purple-100 text-purple-700', label: 'Administrador' };
@@ -44,56 +51,60 @@ export function Empleados() {
         return { color: 'bg-gray-100 text-gray-700', label: rol || 'Desconocido' };
     }
   };
+
   const handleEditar = empleado => {
     setEmpleadoEditar(empleado);
     setMostrarModal(true);
   };
+
   const handleNuevo = () => {
     setEmpleadoEditar(null);
     setMostrarModal(true);
   };
+
   const handleEliminar = async id => {
     if (window.confirm('¿Estás seguro de eliminar este empleado?')) {
       try {
         await api.empleados.delete(id);
-        setData(empleados.filter(e => e.id !== id));
+        // Filtrar por id_empleado (la PK real)
+        setData(empleados.filter(e => (e.id_empleado || e.id) !== id));
       } catch (err) {
         alert('Error al eliminar empleado: ' + err.message);
       }
     }
   };
+
   const handleGuardar = async e => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const nuevoEmpleado = {
+    const payload = {
       nombre: formData.get('nombre'),
-      usuario: formData.get('usuario'),
+      nombre_usuario: formData.get('nombre_usuario'),   // campo correcto para el backend
       email: formData.get('email'),
+      correo: formData.get('email'),
       telefono: formData.get('telefono'),
       rol: formData.get('rol'),
+      id_area: formData.get('id_area') || 1,
       estado: 'activo'
     };
+    // Solo enviar password si se llenó el campo
+    const password = formData.get('password');
+    if (password && password.trim() !== '') {
+      payload.password = password;
+    }
+
     try {
       if (empleadoEditar) {
-        const updated = await api.empleados.update(empleadoEditar.id, nuevoEmpleado);
-        setData(empleados.map(e => e.id === empleadoEditar.id ? updated : e));
+        const updated = await api.empleados.update(empleadoEditar.id_empleado || empleadoEditar.id, payload);
+        setData(empleados.map(e => (e.id_empleado || e.id) === (empleadoEditar.id_empleado || empleadoEditar.id) ? { ...e, ...updated } : e));
       } else {
-        const created = await api.empleados.create(nuevoEmpleado);
+        const created = await api.empleados.create(payload);
         setData([...empleados, created]);
       }
       setMostrarModal(false);
       setEmpleadoEditar(null);
     } catch (err) {
       alert('Error al guardar empleado: ' + err.message);
-    }
-  };
-  const handleUsuarioChange = (e) => {
-    const usr = e.target.value.trim().toLowerCase();
-    const emailInput = document.getElementById('email-input');
-    if (emailInput) {
-      if(!empleadoEditar) {
-         emailInput.value = usr ? `${usr}@controlstock.com` : '';
-      }
     }
   };
 
@@ -151,35 +162,22 @@ export function Empleados() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  ID
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Empleado
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Usuario
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Correo Electrónico
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Teléfono
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rol
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Acciones
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empleado</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Correo Electrónico</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {empleadosFiltrados.map((empleado, index) => {
               const rolBadge = getRolBadge(empleado.rol || empleado.id_rol);
-              return <tr key={empleado.id_empleado || empleado.id || index} className="hover:bg-gray-50 transition-colors">
+              const empId = empleado.id_empleado || empleado.id;
+              return <tr key={empId || index} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      #{empleado.id_empleado || empleado.id || 'N/A'}
+                      #{empId || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
@@ -192,7 +190,8 @@ export function Empleados() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {empleado.usuario || 'N/A'}
+                      {/* nombre_usuario viene del backend EmpleadoController::index */}
+                      {empleado.nombre_usuario || <span className="text-gray-400 italic">Sin usuario</span>}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 text-sm text-gray-900">
@@ -216,7 +215,7 @@ export function Empleados() {
                         <button onClick={() => handleEditar(empleado)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                           <Pencil className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleEliminar(empleado.id_empleado || empleado.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                        <button onClick={() => handleEliminar(empId)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -235,39 +234,63 @@ export function Empleados() {
 
       {/* Modal */}
       {mostrarModal && <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-900 mb-4">
               {empleadoEditar ? 'Editar Empleado' : 'Agregar Nuevo Empleado'}
             </h2>
             <form onSubmit={handleGuardar} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre Completo
+                  Nombre Completo *
                 </label>
                 <input type="text" name="nombre" defaultValue={empleadoEditar?.nombre} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder="Ej: Juan Pérez" required />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
-                <input type="text" name="usuario" defaultValue={empleadoEditar?.usuario} onChange={handleUsuarioChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder="Ej: jperez" required />
-              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Correo Electrónico
+                  <span className="flex items-center gap-1"><User className="w-4 h-4" /> Usuario del sistema</span>
                 </label>
-                <input type="email" id="email-input" name="email" defaultValue={empleadoEditar?.email} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder="correo@ejemplo.com" required />
+                <input type="text" name="nombre_usuario" defaultValue={empleadoEditar?.nombre_usuario} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder="Ej: jperez" />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <span className="flex items-center gap-1"><Lock className="w-4 h-4" /> {empleadoEditar ? 'Nueva Contraseña (dejar vacío para no cambiar)' : 'Contraseña'}</span>
+                </label>
+                <input type="password" name="password" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder={empleadoEditar ? '(sin cambios)' : 'Contraseña inicial'} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Correo Electrónico *
+                </label>
+                <input type="email" name="email" defaultValue={empleadoEditar?.email || empleadoEditar?.correo} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder="correo@ejemplo.com" required />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                <input type="tel" name="telefono" defaultValue={empleadoEditar?.telefono} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder="55-1234-5678" required />
+                <input type="tel" name="telefono" defaultValue={empleadoEditar?.telefono} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder="55-1234-5678" />
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
-                <select name="rol" defaultValue={empleadoEditar?.rol} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" required>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Área</label>
+                <select name="id_area" defaultValue={empleadoEditar?.id_area || ''} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                  <option value="">Sin área</option>
+                  {areas?.map(area => (
+                    <option key={area.id_area || area.id} value={area.id_area || area.id}>{area.nombre}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Rol *</label>
+                <select name="rol" defaultValue={empleadoEditar?.rol || 'empleado'} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" required>
                   <option value="administrador">Administrador</option>
                   <option value="encargado">Encargado de Sucursal</option>
                   <option value="empleado">Empleado</option>
                 </select>
               </div>
+
               <div className="flex gap-3 mt-6">
                 <button type="button" onClick={() => {
               setMostrarModal(false);

@@ -1,70 +1,99 @@
 import { useState, useEffect } from 'react';
-import { ArrowUpFromLine, Calendar, Package, User, MapPin } from 'lucide-react';
+import { ArrowUpFromLine, Calendar, Package, User, MapPin, Plus, Trash2, Save, ShoppingCart, X } from 'lucide-react';
 import { useFetch } from '../hooks/useApi';
 import { api } from '../services/api';
+import { useToast } from '../hooks/useToast';
+import { ToastContainer } from './common/Toast';
+
 export function Salidas() {
-  const {
-    data: areas,
-    fetchData: fetchAreas
-  } = useFetch();
-  const {
-    data: productos,
-    fetchData: fetchProductos
-  } = useFetch();
+  const { data: areas, fetchData: fetchAreas } = useFetch();
+  const { data: productos, fetchData: fetchProductos } = useFetch();
+  const { data: empleados, fetchData: fetchEmpleados } = useFetch();
   const {
     data: salidas,
     fetchData: fetchSalidas,
     setData: setSalidas
   } = useFetch();
+
+  const { toasts, removeToast, success, error: showError } = useToast();
   const [guardando, setGuardando] = useState(false);
-  const [formData, setFormData] = useState({
-    producto: '',
-    cantidad: '',
-    area: '',
-    empleado: '',
-    fecha: new Date().toISOString().split('T')[0]
-  });
+  
+  const [id_area, setIdArea] = useState('');
+  const [id_empleado, setIdEmpleado] = useState('');
+  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+  const [observaciones, setObservaciones] = useState('');
+  
+  // Lista de items a retirar
+  const [items, setItems] = useState([{ id_producto: '', cantidad: 1 }]);
 
   useEffect(() => {
     fetchAreas(() => api.areas.getAll());
     fetchProductos(() => api.productos.getAll());
+    fetchEmpleados(() => api.empleados.getAll());
     fetchSalidas(() => api.salidas.getAll());
   }, []);
 
-  const handleSubmit = async e => {
+  const handleAddItem = () => {
+    setItems([...items, { id_producto: '', cantidad: 1 }]);
+  };
+
+  const handleRemoveItem = (index) => {
+    if (items.length > 1) {
+      setItems(items.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleItemChange = (index, field, value) => {
+    const newItems = [...items];
+    newItems[index][field] = value;
+    setItems(newItems);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (items.some(item => !item.id_producto || item.cantidad < 1)) {
+      showError('Por favor complete todos los campos de los productos');
+      return;
+    }
+
     setGuardando(true);
     try {
-      const nuevaSalida = await api.salidas.create({
-        id_producto: formData.producto,
-        cantidad: parseInt(formData.cantidad),
-        fecha: formData.fecha,
-        id_usuario: 1 
-      });
-      setSalidas([nuevaSalida, ...(salidas || [])]);
-      setFormData({
-        producto: '',
-        cantidad: '',
-        area: '',
-        empleado: '',
-        fecha: new Date().toISOString().split('T')[0]
-      });
-      alert('Salida registrada con éxito');
+      const payload = {
+        id_area,
+        id_empleado,
+        fecha,
+        observaciones,
+        items: items.map(item => ({
+          id_producto: parseInt(item.id_producto),
+          cantidad: parseInt(item.cantidad)
+        }))
+      };
+
+      await api.salidas.create(payload);
+      success('Salida(s) registrada(s) con éxito');
+      
+      // Reset form
+      setItems([{ id_producto: '', cantidad: 1 }]);
+      setObservaciones('');
+      fetchSalidas(() => api.salidas.getAll());
+      fetchProductos(() => api.productos.getAll()); // Refresh stock levels
     } catch (err) {
-      alert(err.message || 'Error al registrar la salida');
+      showError(err.message || 'Error al registrar la salida');
     } finally {
       setGuardando(false);
     }
   };
+
   return <div className="p-6 space-y-6">
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Salidas de Inventario</h1>
-        <p className="text-gray-500 mt-1">Registra las salidas de productos del inventario</p>
+        <p className="text-gray-500 mt-1">Registra la entrega o consumo de productos del inventario</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Formulario de salida */}
-        <div className="lg:col-span-1 bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        <div className="lg:col-span-1 bg-white rounded-xl p-6 shadow-sm border border-gray-200 h-fit sticky top-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
               <ArrowUpFromLine className="w-5 h-5 text-red-600" />
@@ -73,125 +102,139 @@ export function Salidas() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <div className="flex items-center gap-2">
-                  <Package className="w-4 h-4" />
-                  Producto
-                </div>
-              </label>
-              <select value={formData.producto} onChange={e => setFormData({
-              ...formData,
-              producto: e.target.value
-            })} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none" required>
-                <option value="">Seleccionar producto</option>
-                {productos?.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-              </select>
+            {/* Encabezado */}
+            <div className="space-y-4 pb-4 border-b border-gray-100">
+               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Área Solicitante *</label>
+                <select value={id_area} onChange={e => setIdArea(e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+                  <option value="">Seleccionar área</option>
+                  {areas?.map(area => <option key={area.id} value={area.id}>{area.nombre}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Responsable *</label>
+                <select value={id_empleado} onChange={e => setIdEmpleado(e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+                  <option value="">Seleccionar empleado</option>
+                  {empleados?.map(emp => <option key={emp.id} value={emp.id}>{emp.nombre}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Egreso *</label>
+                <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none" />
+              </div>
+            </div>
+
+            {/* Productos */}
+            <div className="space-y-4 py-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4" /> Productos a Retirar
+                </h3>
+                <button type="button" onClick={handleAddItem} className="text-xs flex items-center gap-1 text-red-600 hover:text-red-700 font-bold">
+                  <Plus className="w-3 h-3" /> Añadir otro
+                </button>
+              </div>
+
+              {items.map((item, index) => {
+                const selectedProd = productos?.find(p => (p.id_producto || p.id).toString() === item.id_producto);
+                return (
+                  <div key={index} className="p-3 bg-gray-50 rounded-lg border border-gray-100 space-y-3 relative">
+                    {items.length > 1 && (
+                      <button type="button" onClick={() => handleRemoveItem(index)} className="absolute top-2 right-2 text-red-400 hover:text-red-600">
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                    
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Producto</label>
+                      <select 
+                        value={item.id_producto} 
+                        onChange={e => handleItemChange(index, 'id_producto', e.target.value)} 
+                        required 
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-red-500 outline-none"
+                      >
+                        <option value="">Seleccionar...</option>
+                        {productos?.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.nombre} ({p.stock} dispon.)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="w-full pr-2">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Cantidad</label>
+                        <input 
+                          type="number" 
+                          min="1" 
+                          max={selectedProd ? selectedProd.stock : 9999}
+                          value={item.cantidad} 
+                          onChange={e => handleItemChange(index, 'cantidad', e.target.value)} 
+                          required 
+                          className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-red-500 outline-none" 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cantidad
-              </label>
-              <input type="number" value={formData.cantidad} onChange={e => setFormData({
-              ...formData,
-              cantidad: e.target.value
-            })} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none" placeholder="0" min="1" required />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
+              <textarea value={observaciones} onChange={setObservaciones} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none resize-none" rows={2} placeholder="Motivo de salida..." />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Área
-                </div>
-              </label>
-              <select value={formData.area} onChange={e => setFormData({
-              ...formData,
-              area: e.target.value
-            })} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none" required>
-                <option value="">Seleccionar área</option>
-                {areas?.map(area => <option key={area.id} value={area.id.toString()}>{area.nombre}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  Empleado
-                </div>
-              </label>
-              <select value={formData.empleado} onChange={e => setFormData({
-              ...formData,
-              empleado: e.target.value
-            })} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none" required>
-                <option value="">Seleccionar empleado</option>
-                <option value="1">Admin</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Fecha
-                </div>
-              </label>
-              <input type="date" value={formData.fecha} onChange={e => setFormData({
-              ...formData,
-              fecha: e.target.value
-            })} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none" required />
-            </div>
-
-            <button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-medium transition-colors shadow-sm flex items-center justify-center gap-2">
-              <ArrowUpFromLine className="w-5 h-5" />
-              Guardar Salida
+            <button type="submit" disabled={guardando} className="w-full bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white py-3 rounded-lg font-medium transition-all shadow-md flex items-center justify-center gap-2">
+              <Save className="w-5 h-5" />
+              {guardando ? 'Verificando...' : 'Guardar Salida'}
             </button>
           </form>
         </div>
 
-        {/* Historial de salidas */}
+        {/* Historial delegar */}
         <div className="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border border-gray-200">
           <h2 className="text-lg font-bold text-gray-900 mb-4">Salidas Recientes</h2>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantidad</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Área</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Empleado</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {salidas?.map(salida => <tr key={salida.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-4 text-sm text-gray-900">#{salida.id}</td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-                          <Package className="w-4 h-4 text-red-600" />
+          {salidas?.length === 0 ? (
+             <div className="py-12 flex flex-col items-center justify-center text-gray-400">
+                <ShoppingCart className="w-12 h-12 mb-3 opacity-20" />
+                <p>No se han registrado salidas aún</p>
+             </div>
+          ) : (
+            <div className="space-y-4">
+              {salidas?.slice(0, 10).map((salida) => (
+                <div key={salida.id} className="border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+                  <div className="bg-gray-50 px-4 py-3 flex justify-between items-center border-b border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-bold bg-red-600 text-white px-2 py-1 rounded">#{salida.id}</span>
+                      <span className="text-sm font-medium text-gray-700">{new Date(salida.fecha).toLocaleString()}</span>
+                    </div>
+                    <div className="flex gap-4 text-xs font-medium text-gray-500">
+                      <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {salida.area?.nombre}</span>
+                      <span className="flex items-center gap-1"><User className="w-3 h-3" /> {salida.empleado?.nombre}</span>
+                    </div>
+                  </div>
+                  <div className="p-4 space-y-2">
+                    {salida.detalles?.map((det, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-sm">
+                        <div className="flex items-center gap-2">
+                          <Package className="w-4 h-4 text-gray-400" />
+                          <span className="font-medium text-gray-800">{det.producto?.nombre}</span>
                         </div>
-                        <span className="text-sm font-medium text-gray-900">
-                          {salida.productos?.[0]?.producto?.nombre || 'Producto'}
-                        </span>
+                        <span className="font-bold text-red-600">-{det.cantidad} uds</span>
                       </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="inline-flex px-3 py-1 text-sm font-medium bg-red-100 text-red-700 rounded-full">
-                        -{salida.productos?.[0]?.cantidad || 0}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-sm text-gray-900">Almacén Central</td>
-                    <td className="px-4 py-4 text-sm text-gray-900">Usuario #{salida.id_usuario}</td>
-                    <td className="px-4 py-4 text-sm text-gray-500">{salida.fecha}</td>
-                  </tr>)}
-              </tbody>
-            </table>
-          </div>
+                    ))}
+                    {salida.observaciones && (
+                      <p className="text-xs text-gray-400 mt-2 italic">"{salida.observaciones}"</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>;
