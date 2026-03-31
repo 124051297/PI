@@ -12,6 +12,8 @@ export function Header() {
   } = useAuth();
   const [mostrarMenu, setMostrarMenu] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [imageFailed, setImageFailed] = useState(false);
+  const profileImageSrc = !imageFailed && user?.foto_perfil ? `${user.foto_perfil}${user.foto_perfil.includes('?') ? '&' : '?'}v=${user?.ultima_modificacion || 'current'}` : null;
 
   useEffect(() => {
     const fetchCount = async () => {
@@ -27,6 +29,9 @@ export function Header() {
     const interval = setInterval(fetchCount, 60000);
     return () => clearInterval(interval);
   }, [location.pathname]); // Refrescar al cambiar de ruta
+  useEffect(() => {
+    setImageFailed(false);
+  }, [user?.foto_perfil, user?.ultima_modificacion]);
   const handleLogout = () => {
     logout();
     navigate('/');
@@ -64,8 +69,8 @@ export function Header() {
                 <p className="text-xs text-gray-500">{user && getRolLabel(user.rol)}</p>
               </div>
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden border border-blue-200">
-                {user?.foto_perfil ? (
-                  <img src={user.foto_perfil} alt="Perfil" className="w-full h-full object-cover" />
+                {profileImageSrc ? (
+                  <img src={profileImageSrc} alt={user?.nombre || 'Foto de perfil'} className="w-full h-full object-cover" onError={() => setImageFailed(true)} />
                 ) : (
                   <User className="w-5 h-5 text-blue-600" />
                 )}

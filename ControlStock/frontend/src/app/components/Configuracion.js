@@ -7,6 +7,7 @@ import { api } from '../services/api';
 export function Configuracion() {
   const navigate = useNavigate();
   const { user, updatePassword, updateUser } = useAuth();
+  const userId = user?.id || user?.id_usuario;
   const [nombre, setNombre] = useState(user?.nombre || '');
   const [email, setEmail] = useState(user?.email || '');
   const [fotoPerfil, setFotoPerfil] = useState(user?.foto_perfil || null);
@@ -19,6 +20,7 @@ export function Configuracion() {
   const [mensaje, setMensaje] = useState(null);
   const [guardandoPerfil, setGuardandoPerfil] = useState(false);
   const [restaurandoLogo, setRestaurandoLogo] = useState(false);
+  const profileImageSrc = fotoPerfil ? `${fotoPerfil}${fotoPerfil.includes('?') ? '&' : '?'}v=${user?.ultima_modificacion || Date.now()}` : null;
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -28,17 +30,17 @@ export function Configuracion() {
       let photoUrl = fotoPerfil;
 
       if (fotoPerfilFile) {
-        const photoResponse = await api.usuarios.uploadPhoto(user.id, fotoPerfilFile);
-        photoUrl = photoResponse.foto_perfil;
+        const photoResponse = await api.usuarios.uploadPhoto(userId, fotoPerfilFile);
+        photoUrl = `${photoResponse.foto_perfil}${photoResponse.foto_perfil.includes('?') ? '&' : '?'}v=${Date.now()}`;
       }
 
-      const updatedUser = await api.usuarios.update(user.id, {
+      const updatedUser = await api.usuarios.update(userId, {
         nombre,
         email,
         foto_perfil: photoUrl
       });
 
-      updateUser({ ...user, ...updatedUser });
+      updateUser({ ...user, ...updatedUser, foto_perfil: photoUrl, ultima_modificacion: new Date().toISOString() });
       setFotoPerfil(photoUrl);
       setFotoPerfilFile(null);
       setMensaje({ tipo: 'success', texto: 'Perfil actualizado con exito' });
@@ -135,7 +137,7 @@ export function Configuracion() {
             <div className="text-center mb-6">
               <div className="relative inline-block">
                 <div className="w-32 h-32 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
-                  {fotoPerfil ? <img src={fotoPerfil} alt="Perfil" className="w-full h-full object-cover" /> : <User className="w-16 h-16 text-blue-600" />}
+                  {profileImageSrc ? <img src={profileImageSrc} alt={nombre || 'Foto de perfil'} className="w-full h-full object-cover" onError={() => setFotoPerfil(null)} /> : <User className="w-16 h-16 text-blue-600" />}
                 </div>
                 <button onClick={() => fileInputRef.current?.click()} className="absolute bottom-0 right-0 p-2 bg-blue-600 rounded-full text-white hover:bg-blue-700 shadow-md transition-colors" title="Cambiar Foto">
                   <Camera className="w-4 h-4" />

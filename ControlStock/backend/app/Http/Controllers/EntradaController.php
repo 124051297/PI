@@ -4,8 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Entrada;
 use App\Models\Ubicacion;
+use App\Support\SystemLogger;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -13,7 +14,7 @@ class EntradaController extends Controller
 {
     public function index()
     {
-        $entradas = Entrada::with('detalles.producto', 'empleado', 'area')->get();
+        $entradas = Entrada::with('detalles.producto', 'empleado', 'area')->orderByDesc('fecha')->get();
         return response()->json($entradas);
     }
 
@@ -31,10 +32,14 @@ class EntradaController extends Controller
         ]);
 
         return DB::transaction(function () use ($validated) {
+            $fechaMovimiento = !empty($validated['fecha'])
+                ? Carbon::parse($validated['fecha'])->setTimeFrom(now())
+                : now();
+
             $entrada = Entrada::create([
                 'id_empleado' => $validated['id_empleado'],
                 'id_area' => $validated['id_area'],
-                'fecha' => $validated['fecha'] ?? now(),
+                'fecha' => $fechaMovimiento,
                 'observaciones' => $validated['observaciones'] ?? null,
             ]);
 
@@ -64,12 +69,13 @@ class EntradaController extends Controller
                 $inventario->stock_actual += $item['cantidad'];
                 $inventario->save();
 
-                \App\Models\Bitacora::create([
-                    'accion' => "Entrada: {$item['cantidad']} uds del producto ID: {$item['id_producto']}",
-                    'fecha' => now(),
-                    'id_usuario' => Auth::user()?->id_usuario,
-                ]);
             }
+
+            SystemLogger::log(
+                'Registrar entrada',
+                'Entrada',
+                'Se registro la entrada #' . $entrada->id_entrada . ' en el area ' . ($entrada->area?->nombre ?? 'N/A') . ' con ' . count($validated['items']) . ' producto(s).'
+            );
 
             return response()->json([
                 'message' => 'Entrada registrada exitosamente',
@@ -87,6 +93,11 @@ class EntradaController extends Controller
     {
         $item = Entrada::findOrFail($id);
         $item->update($request->only(['fecha', 'observaciones', 'id_empleado', 'id_area']));
+        SystemLogger::log(
+            'Actualizar entrada',
+            'Entrada',
+            'Se actualizo la entrada #' . $item->id_entrada . '.'
+        );
         return response()->json($item);
     }
 
@@ -95,6 +106,11 @@ class EntradaController extends Controller
         $entrada = Entrada::findOrFail($id);
         \App\Models\DetalleEntrada::where('id_entrada', $id)->delete();
         $entrada->delete();
+        SystemLogger::log(
+            'Eliminar entrada',
+            'Entrada',
+            'Se elimino la entrada #' . $id . '.'
+        );
         return response()->json(null, 204);
     }
 }

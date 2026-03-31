@@ -4,8 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Salida;
 use App\Models\Ubicacion;
+use App\Support\SystemLogger;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -13,7 +14,7 @@ class SalidaController extends Controller
 {
     public function index()
     {
-        $salidas = Salida::with('detalles.producto', 'empleado', 'area')->get();
+        $salidas = Salida::with('detalles.producto', 'empleado', 'area')->orderByDesc('fecha')->get();
         return response()->json($salidas);
     }
 
@@ -31,10 +32,14 @@ class SalidaController extends Controller
         ]);
 
         return DB::transaction(function () use ($validated) {
+            $fechaMovimiento = !empty($validated['fecha'])
+                ? Carbon::parse($validated['fecha'])->setTimeFrom(now())
+                : now();
+
             $salida = Salida::create([
                 'id_empleado' => $validated['id_empleado'],
                 'id_area' => $validated['id_area'],
-                'fecha' => $validated['fecha'] ?? now(),
+                'fecha' => $fechaMovimiento,
                 'observaciones' => $validated['observaciones'] ?? null,
             ]);
 
@@ -77,12 +82,13 @@ class SalidaController extends Controller
                 $inventario->stock_actual -= $item['cantidad'];
                 $inventario->save();
 
-                \App\Models\Bitacora::create([
-                    'accion' => "Salida: {$item['cantidad']} uds del producto ID: {$item['id_producto']}",
-                    'fecha' => now(),
-                    'id_usuario' => Auth::user()?->id_usuario,
-                ]);
             }
+
+            SystemLogger::log(
+                'Registrar salida',
+                'Salida',
+                'Se registro la salida #' . $salida->id_salida . ' en el area ' . ($salida->area?->nombre ?? 'N/A') . ' con ' . count($validated['items']) . ' producto(s).'
+            );
 
             return response()->json([
                 'message' => 'Salida registrada exitosamente',
@@ -100,6 +106,11 @@ class SalidaController extends Controller
     {
         $item = Salida::findOrFail($id);
         $item->update($request->only(['fecha', 'observaciones', 'id_empleado', 'id_area']));
+        SystemLogger::log(
+            'Actualizar salida',
+            'Salida',
+            'Se actualizo la salida #' . $item->id_salida . '.'
+        );
         return response()->json($item);
     }
 
@@ -108,6 +119,11 @@ class SalidaController extends Controller
         $salida = Salida::findOrFail($id);
         \App\Models\DetalleSalida::where('id_salida', $id)->delete();
         $salida->delete();
+        SystemLogger::log(
+            'Eliminar salida',
+            'Salida',
+            'Se elimino la salida #' . $id . '.'
+        );
         return response()->json(null, 204);
     }
 }

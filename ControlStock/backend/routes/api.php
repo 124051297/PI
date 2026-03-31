@@ -46,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/configuraciones/logo', [ConfiguracionController::class, 'resetLogo']);
 
     Route::get('/notificaciones', [NotificacionesController::class, 'index']);
+    Route::post('/notificaciones', [NotificacionesController::class, 'store']);
     Route::put('/notificaciones/{id}', [NotificacionesController::class, 'update']);
     Route::delete('/notificaciones/{id}', [NotificacionesController::class, 'destroy']);
     Route::post('/notificaciones/mark-all-read', [NotificacionesController::class, 'markAllAsRead']);

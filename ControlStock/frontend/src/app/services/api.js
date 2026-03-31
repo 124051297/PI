@@ -247,6 +247,14 @@ export const api = {
       const response = await fetch(`${API_BASE_URL}/notificaciones`, { headers: getJsonHeaders() });
       return await handleResponse(response);
     },
+    create: async (data) => {
+      const response = await fetch(`${API_BASE_URL}/notificaciones`, {
+        method: 'POST',
+        headers: getJsonHeaders(),
+        body: JSON.stringify(data)
+      });
+      return await handleResponse(response);
+    },
     update: async (id, data) => {
       const response = await fetch(`${API_BASE_URL}/notificaciones/${id}`, {
         method: 'PUT',

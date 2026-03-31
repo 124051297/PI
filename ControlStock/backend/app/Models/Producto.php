@@ -108,34 +108,4 @@ class Producto extends Model
         }
         return $ubicaciones;
     }
-
-    protected static function booted()
-    {
-        static::created(function ($producto) {
-            $user = \Illuminate\Support\Facades\Auth::user();
-            \App\Models\Bitacora::create([
-                'accion' => 'Crear Producto: ' . ($producto->nombre_producto ?? 'N/A'),
-                'fecha' => now(),
-                'id_usuario' => $user->id_usuario ?? null
-            ]);
-        });
-
-        static::updated(function ($producto) {
-            $user = \Illuminate\Support\Facades\Auth::user();
-            \App\Models\Bitacora::create([
-                'accion' => 'Modificar Producto: ' . ($producto->nombre_producto ?? 'N/A'),
-                'fecha' => now(),
-                'id_usuario' => $user->id_usuario ?? null
-            ]);
-        });
-
-        static::deleted(function ($producto) {
-            $user = \Illuminate\Support\Facades\Auth::user();
-            \App\Models\Bitacora::create([
-                'accion' => 'Eliminar Producto: ' . ($producto->nombre_producto ?? 'N/A'),
-                'fecha' => now(),
-                'id_usuario' => $user->id_usuario ?? null
-            ]);
-        });
-    }
 }

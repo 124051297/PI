@@ -2,16 +2,112 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Notificacion;
 use App\Models\Producto;
+use App\Models\Usuario;
+use App\Support\SystemLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class NotificacionesController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $this->generarAlertasStockBajo();
 
-        return response()->json(\App\Models\Notificacion::orderByDesc('fecha')->get());
+        $query = Notificacion::with('usuario.empleado')->orderByDesc('fecha');
+
+        if (!$this->isAdmin($request)) {
+            $query->where(function ($builder) use ($request) {
+                $builder->whereNull('id_usuario')
+                    ->orWhere('id_usuario', $request->user()?->id_usuario);
+            });
+        }
+
+        return response()->json(
+            $query->get()->map(function (Notificacion $notificacion) {
+                return [
+                    'id' => $notificacion->id,
+                    'titulo' => $notificacion->titulo,
+                    'mensaje' => $notificacion->mensaje,
+                    'tipo' => $notificacion->tipo,
+                    'leida' => (bool) $notificacion->leida,
+                    'fecha' => optional($notificacion->fecha)->format('Y-m-d H:i:s') ?? (string) $notificacion->fecha,
+                    'id_usuario' => $notificacion->id_usuario,
+                    'destinatario' => $notificacion->usuario
+                        ? trim(($notificacion->usuario->empleado?->nombre ?? '') . ' ' . ($notificacion->usuario->empleado?->ap ?? ''))
+                        : 'General',
+                ];
+            })
+        );
+    }
+
+    public function store(Request $request)
+    {
+        if (!$this->isAdmin($request)) {
+            throw ValidationException::withMessages([
+                'rol' => ['Solo los administradores pueden crear notificaciones.'],
+            ]);
+        }
+
+        $validated = $request->validate([
+            'titulo' => 'required|string|max:150',
+            'mensaje' => 'required|string|max:1000',
+            'tipo' => ['required', Rule::in(['info', 'success', 'warning', 'error'])],
+            'id_usuarios' => 'nullable|array',
+            'id_usuarios.*' => 'exists:usuarios,id_usuario',
+            'para_todos' => 'nullable|boolean',
+        ]);
+
+        $destinatarios = collect($validated['id_usuarios'] ?? [])->filter()->unique()->values();
+        $paraTodos = (bool) ($validated['para_todos'] ?? false);
+
+        if (!$paraTodos && $destinatarios->isEmpty()) {
+            throw ValidationException::withMessages([
+                'id_usuarios' => ['Selecciona al menos un destinatario o marca la opcion para todos.'],
+            ]);
+        }
+
+        $creadas = DB::transaction(function () use ($validated, $destinatarios, $paraTodos) {
+            if ($paraTodos) {
+                return collect([
+                    Notificacion::create([
+                        'titulo' => $validated['titulo'],
+                        'mensaje' => $validated['mensaje'],
+                        'tipo' => $validated['tipo'],
+                        'leida' => false,
+                        'fecha' => now(),
+                        'id_usuario' => null,
+                    ]),
+                ]);
+            }
+
+            return $destinatarios->map(function ($idUsuario) use ($validated) {
+                return Notificacion::create([
+                    'titulo' => $validated['titulo'],
+                    'mensaje' => $validated['mensaje'],
+                    'tipo' => $validated['tipo'],
+                    'leida' => false,
+                    'fecha' => now(),
+                    'id_usuario' => $idUsuario,
+                ]);
+            });
+        });
+
+        SystemLogger::log(
+            'Crear notificacion',
+            'Notificacion',
+            $paraTodos
+                ? 'Se envio la notificacion "' . $validated['titulo'] . '" a todos los empleados.'
+                : 'Se envio la notificacion "' . $validated['titulo'] . '" a ' . $creadas->count() . ' destinatario(s).'
+        );
+
+        return response()->json([
+            'message' => 'Notificacion creada correctamente.',
+            'data' => $creadas,
+        ], 201);
     }
 
     private function generarAlertasStockBajo()
@@ -27,12 +123,12 @@ class NotificacionesController extends Controller
         foreach ($productosBajoStock as $producto) {
             $mensaje = 'El producto "' . $producto->nombre_producto . '" tiene solo ' . ($producto->stock_actual ?? 0) . ' unidades (Minimo: ' . $producto->stock_minimo . ')';
 
-            $existe = \App\Models\Notificacion::where('titulo', 'Alerta de Stock Bajo')
+            $existe = Notificacion::where('titulo', 'Alerta de Stock Bajo')
                 ->where('mensaje', $mensaje)
                 ->exists();
 
             if (!$existe) {
-                \App\Models\Notificacion::create([
+                Notificacion::create([
                     'titulo' => 'Alerta de Stock Bajo',
                     'mensaje' => $mensaje,
                     'tipo' => 'warning',
@@ -45,30 +141,76 @@ class NotificacionesController extends Controller
 
     public function update(Request $request, $id)
     {
-        $notificacion = \App\Models\Notificacion::findOrFail($id);
+        $notificacion = Notificacion::findOrFail($id);
+        $this->authorizeNotificationAccess($request, $notificacion);
         $notificacion->update([
             'leida' => $request->boolean('leida', true),
         ]);
         return response()->json($notificacion);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        $notificacion = \App\Models\Notificacion::findOrFail($id);
+        $notificacion = Notificacion::findOrFail($id);
+        $this->authorizeNotificationAccess($request, $notificacion);
         $notificacion->delete();
         return response()->json(null, 204);
     }
 
-    public function markAllAsRead()
+    public function markAllAsRead(Request $request)
     {
-        \App\Models\Notificacion::where('leida', false)->update(['leida' => true]);
+        $query = Notificacion::where('leida', false);
+
+        if (!$this->isAdmin($request)) {
+            $query->where(function ($builder) use ($request) {
+                $builder->whereNull('id_usuario')
+                    ->orWhere('id_usuario', $request->user()?->id_usuario);
+            });
+        }
+
+        $query->update(['leida' => true]);
         return response()->json(['message' => 'Todas marcadas como leidas']);
     }
 
-    public function unreadCount()
+    public function unreadCount(Request $request)
     {
+        $query = Notificacion::where('leida', false);
+
+        if (!$this->isAdmin($request)) {
+            $query->where(function ($builder) use ($request) {
+                $builder->whereNull('id_usuario')
+                    ->orWhere('id_usuario', $request->user()?->id_usuario);
+            });
+        }
+
         return response()->json([
-            'count' => \App\Models\Notificacion::where('leida', false)->count(),
+            'count' => $query->count(),
         ]);
+    }
+
+    private function authorizeNotificationAccess(Request $request, Notificacion $notificacion): void
+    {
+        if ($this->isAdmin($request)) {
+            return;
+        }
+
+        if ($notificacion->id_usuario !== null && $notificacion->id_usuario !== $request->user()?->id_usuario) {
+            abort(403, 'No tienes permisos para modificar esta notificacion.');
+        }
+    }
+
+    private function isAdmin(Request $request): bool
+    {
+        $usuario = $request->user();
+        if (!$usuario) {
+            return false;
+        }
+
+        $rol = DB::table('empleados')
+            ->join('roles', 'roles.id_rol', '=', 'empleados.id_rol')
+            ->where('empleados.id_empleado', $usuario->id_empleado)
+            ->value('roles.nombre');
+
+        return strtolower((string) $rol) === 'administrador';
     }
 }

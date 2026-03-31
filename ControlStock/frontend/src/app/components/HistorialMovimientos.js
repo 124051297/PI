@@ -4,6 +4,14 @@ import { History, Search } from 'lucide-react';
 export function HistorialMovimientos() {
   const [movimientos, setMovimientos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const formatDateTime = (value) => value ? new Intl.DateTimeFormat('es-MX', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  }).format(new Date(value)) : 'Sin fecha';
 
   useEffect(() => {
     async function fetchData() {
@@ -49,7 +57,7 @@ export function HistorialMovimientos() {
               <tbody className="divide-y divide-gray-200">
                 {movimientos.map((mov) => (
                     <tr key={mov.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(mov.created_at).toLocaleString()}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDateTime(mov.fecha)}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{mov.usuario}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${mov.accion === 'Crear' ? 'bg-green-100 text-green-800' : mov.accion === 'Eliminar' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>

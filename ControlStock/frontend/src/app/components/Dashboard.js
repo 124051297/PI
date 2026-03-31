@@ -209,17 +209,17 @@ export function Dashboard() {
           ) : (
              (stats.actividadReciente || []).map((actividad, i) => (
                 <div key={i} className={`flex items-center gap-4 p-4 border-l-4 rounded ${
-                  actividad.accion === 'Crear' ? 'border-green-500 bg-green-50' : 
-                  actividad.accion === 'Eliminar' ? 'border-red-500 bg-red-50' : 'border-blue-500 bg-blue-50'
+                  actividad.accion?.toLowerCase().includes('crear') || actividad.accion?.toLowerCase().includes('registrar') ? 'border-green-500 bg-green-50' : 
+                  actividad.accion?.toLowerCase().includes('eliminar') ? 'border-red-500 bg-red-50' : 'border-blue-500 bg-blue-50'
                 }`}>
-                  {actividad.accion === 'Crear' ? <ArrowDownToLine className="w-5 h-5 text-green-600" /> : 
-                   actividad.accion === 'Eliminar' ? <ArrowUpFromLine className="w-5 h-5 text-red-600" /> : 
+                  {actividad.accion?.toLowerCase().includes('crear') || actividad.accion?.toLowerCase().includes('registrar') ? <ArrowDownToLine className="w-5 h-5 text-green-600" /> : 
+                   actividad.accion?.toLowerCase().includes('eliminar') ? <ArrowUpFromLine className="w-5 h-5 text-red-600" /> : 
                    <Package className="w-5 h-5 text-blue-600" />}
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900">{actividad.entidad} - {actividad.accion}</p>
                     <p className="text-xs text-gray-500">{actividad.detalles} ({actividad.usuario})</p>
                   </div>
-                  <span className="text-xs text-gray-500">{new Date(actividad.created_at).toLocaleString()}</span>
+                  <span className="text-xs text-gray-500">{new Date(actividad.fecha).toLocaleString('es-MX')}</span>
                 </div>
              ))
           )}

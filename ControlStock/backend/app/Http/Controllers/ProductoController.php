@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Inventario;
 use App\Models\Producto;
 use App\Models\Ubicacion;
+use App\Support\SystemLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -54,6 +55,12 @@ class ProductoController extends Controller
                 ]);
             }
 
+            SystemLogger::log(
+                'Crear producto',
+                'Producto',
+                'Se creo el producto "' . $producto->nombre_producto . '" con stock inicial de ' . $stockInicial . ' unidades.'
+            );
+
             return response()->json([
                 'message' => 'Producto creado exitosamente',
                 'data' => Producto::find($producto->id_producto),
@@ -101,6 +108,12 @@ class ProductoController extends Controller
                 );
             }
 
+            SystemLogger::log(
+                'Actualizar producto',
+                'Producto',
+                'Se actualizo el producto "' . $producto->nombre_producto . '".'
+            );
+
             return response()->json([
                 'message' => 'Producto actualizado exitosamente',
                 'data' => Producto::find($producto->id_producto),
@@ -113,10 +126,17 @@ class ProductoController extends Controller
         $producto = Producto::findOrFail($id);
 
         return DB::transaction(function () use ($producto, $id) {
+            $nombreProducto = $producto->nombre_producto;
             \App\Models\DetalleEntrada::where('id_producto', $id)->delete();
             \App\Models\DetalleSalida::where('id_producto', $id)->delete();
             Inventario::where('id_producto', $id)->delete();
             $producto->delete();
+
+            SystemLogger::log(
+                'Eliminar producto',
+                'Producto',
+                'Se elimino el producto "' . $nombreProducto . '".'
+            );
 
             return response()->json(null, 204);
         });

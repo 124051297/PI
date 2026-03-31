@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Pencil, Trash2, MapPin, X, Calendar } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, MapPin, X, Calendar, Layers3 } from 'lucide-react';
 import { useFetch } from '../hooks/useApi';
 import { api } from '../services/api';
 import { LoadingSpinner } from './common/LoadingSpinner';
@@ -8,6 +8,8 @@ import { EmptyState } from './common/EmptyState';
 import { useToast } from '../hooks/useToast';
 import { ToastContainer } from './common/Toast';
 
+const emptyUbicacion = { pasillo: '', estante: '', nivel: '' };
+
 export function Areas() {
   const { data: areas, loading, error, fetchData, setData } = useFetch();
   const [busqueda, setBusqueda] = useState('');
@@ -15,6 +17,8 @@ export function Areas() {
   const [areaEditar, setAreaEditar] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [eliminando, setEliminando] = useState(null);
+  const [formState, setFormState] = useState({ nombre: '' });
+  const [ubicaciones, setUbicaciones] = useState([{ ...emptyUbicacion }]);
   const { toasts, removeToast, success, error: showError } = useToast();
   const [paginaActual, setPaginaActual] = useState(1);
   const itemsPorPagina = 10;
@@ -26,6 +30,30 @@ export function Areas() {
   useEffect(() => {
     cargarAreas();
   }, []);
+
+  useEffect(() => {
+    if (!mostrarModal) return;
+
+    setFormState({ nombre: areaEditar?.nombre || '' });
+
+    const ubicacionesIniciales = areaEditar?.ubicaciones?.length
+      ? areaEditar.ubicaciones.map((ubicacion) => ({
+          id_ubicacion: ubicacion.id_ubicacion,
+          pasillo: ubicacion.pasillo || '',
+          estante: ubicacion.estante || '',
+          nivel: ubicacion.nivel || ''
+        }))
+      : areaEditar?.ubicacion_inicial
+        ? [{
+            id_ubicacion: areaEditar.ubicacion_inicial.id_ubicacion,
+            pasillo: areaEditar.ubicacion_inicial.pasillo || '',
+            estante: areaEditar.ubicacion_inicial.estante || '',
+            nivel: areaEditar.ubicacion_inicial.nivel || ''
+          }]
+        : [{ ...emptyUbicacion }];
+
+    setUbicaciones(ubicacionesIniciales.length ? ubicacionesIniciales : [{ ...emptyUbicacion }]);
+  }, [mostrarModal, areaEditar]);
 
   const areasFiltradas = areas?.filter((area) =>
     area.nombre.toLowerCase().includes(busqueda.toLowerCase())
@@ -57,13 +85,26 @@ export function Areas() {
   const handleGuardar = async (e) => {
     e.preventDefault();
     setGuardando(true);
-    const formData = new FormData(e.currentTarget);
+
+    const ubicacionesNormalizadas = ubicaciones
+      .map((ubicacion) => ({
+        ...ubicacion,
+        pasillo: ubicacion.pasillo?.trim() || '',
+        estante: ubicacion.estante?.trim() || '',
+        nivel: ubicacion.nivel?.trim() || ''
+      }))
+      .filter((ubicacion) => ubicacion.pasillo || ubicacion.estante || ubicacion.nivel);
+
+    const hayUbicacionIncompleta = ubicacionesNormalizadas.some((ubicacion) => !ubicacion.pasillo || !ubicacion.estante || !ubicacion.nivel);
+    if (hayUbicacionIncompleta) {
+      showError('Cada ubicacion debe incluir pasillo, estante y nivel');
+      setGuardando(false);
+      return;
+    }
 
     const payload = {
-      nombre: formData.get('nombre')?.trim(),
-      pasillo: formData.get('pasillo')?.trim() || null,
-      estante: formData.get('estante')?.trim() || null,
-      nivel: formData.get('nivel')?.trim() || null
+      nombre: formState.nombre.trim(),
+      ubicaciones: ubicacionesNormalizadas
     };
 
     if (!payload.nombre) {
@@ -110,6 +151,20 @@ export function Areas() {
   const cerrarModal = () => {
     setMostrarModal(false);
     setAreaEditar(null);
+    setFormState({ nombre: '' });
+    setUbicaciones([{ ...emptyUbicacion }]);
+  };
+
+  const handleUbicacionChange = (index, field, value) => {
+    setUbicaciones((prev) => prev.map((ubicacion, currentIndex) => currentIndex === index ? { ...ubicacion, [field]: value } : ubicacion));
+  };
+
+  const agregarUbicacion = () => {
+    setUbicaciones((prev) => [...prev, { ...emptyUbicacion }]);
+  };
+
+  const eliminarUbicacion = (index) => {
+    setUbicaciones((prev) => prev.length === 1 ? [{ ...emptyUbicacion }] : prev.filter((_, currentIndex) => currentIndex !== index));
   };
 
   if (loading) {
@@ -158,6 +213,7 @@ export function Areas() {
                   <tr>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre del Area</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Ubicaciones</th>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha de Creacion</th>
                     <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                   </tr>
@@ -173,6 +229,17 @@ export function Areas() {
                               <MapPin className="w-4 h-4 text-blue-600" />
                             </div>
                             <span className="font-medium text-gray-900">{area.nombre}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-1 rounded-full">
+                              <Layers3 className="w-3 h-3" />
+                              {area.total_ubicaciones || area.ubicaciones?.length || 0} ubicacion(es)
+                            </span>
+                            {area.ubicaciones?.[0] && <p className="text-xs text-gray-500">
+                                {area.ubicaciones[0].pasillo} / {area.ubicaciones[0].estante} / {area.ubicaciones[0].nivel}
+                              </p>}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-600">
@@ -223,7 +290,7 @@ export function Areas() {
         </>}
 
       {mostrarModal && <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">{areaEditar ? 'Editar Area' : 'Nueva Area'}</h2>
@@ -241,31 +308,52 @@ export function Areas() {
               <div className="p-6 space-y-4">
                 <div>
                   <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-2">Nombre del Area *</label>
-                  <input type="text" id="nombre" name="nombre" defaultValue={areaEditar?.nombre} required placeholder="Ej: Papeleria, Bodega..." className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  <input type="text" id="nombre" name="nombre" value={formState.nombre} onChange={(e) => setFormState({ nombre: e.target.value })} required placeholder="Ej: Papeleria, Bodega..." className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                 </div>
 
                 <div className="pt-2 border-t border-gray-100">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    Ubicacion inicial {areaEditar ? '(Actualizar)' : ''}
-                  </h3>
-
-                  <div className="grid grid-cols-1 gap-4">
-                    <div>
-                      <label htmlFor="pasillo" className="block text-xs font-medium text-gray-500 mb-1">Pasillo</label>
-                      <input type="text" id="pasillo" name="pasillo" defaultValue={areaEditar?.ubicacion_inicial?.pasillo} placeholder="Ej: A, B, 1..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label htmlFor="estante" className="block text-xs font-medium text-gray-500 mb-1">Estante</label>
-                        <input type="text" id="estante" name="estante" defaultValue={areaEditar?.ubicacion_inicial?.estante} placeholder="Ej: 1, 2..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                      </div>
-                      <div>
-                        <label htmlFor="nivel" className="block text-xs font-medium text-gray-500 mb-1">Nivel / Altura</label>
-                        <input type="text" id="nivel" name="nivel" defaultValue={areaEditar?.ubicacion_inicial?.nivel} placeholder="Ej: 1, PB..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                      </div>
-                    </div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      Ubicaciones asociadas
+                    </h3>
+                    <button type="button" onClick={agregarUbicacion} className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                      Agregar ubicacion
+                    </button>
                   </div>
+
+                  <div className="space-y-3">
+                    {ubicaciones.map((ubicacion, index) => <div key={`${ubicacion.id_ubicacion || 'new'}-${index}`} className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Ubicacion {index + 1}</span>
+                          <button type="button" onClick={() => eliminarUbicacion(index)} className="text-xs text-red-600 hover:text-red-700 font-medium">
+                            Eliminar
+                          </button>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Pasillo</label>
+                          <input type="text" value={ubicacion.pasillo} onChange={(e) => handleUbicacionChange(index, 'pasillo', e.target.value)} placeholder="Ej: A, B, 1..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Estante</label>
+                            <input type="text" value={ubicacion.estante} onChange={(e) => handleUbicacionChange(index, 'estante', e.target.value)} placeholder="Ej: 1, 2..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Nivel / Altura</label>
+                            <input type="text" value={ubicacion.nivel} onChange={(e) => handleUbicacionChange(index, 'nivel', e.target.value)} placeholder="Ej: 1, PB..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" />
+                          </div>
+                        </div>
+
+                        {ubicacion.id_ubicacion && <p className="text-[11px] text-gray-400">ID de ubicacion: #{ubicacion.id_ubicacion}</p>}
+                      </div>)}
+                  </div>
+
+                  <p className="text-xs text-gray-500 mt-3">
+                    Puedes registrar varias ubicaciones para la misma area desde este mismo flujo.
+                  </p>
                 </div>
               </div>
 

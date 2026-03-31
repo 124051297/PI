@@ -19,6 +19,7 @@ class Usuario extends Authenticatable
     protected $hidden = [
         'password',
     ];
+    protected $appends = ['id'];
 
     public function getAuthIdentifierName()
     {
@@ -33,6 +34,11 @@ class Usuario extends Authenticatable
     public function empleado()
     {
         return $this->belongsTo(Empleado::class, 'id_empleado', 'id_empleado');
+    }
+
+    public function getIdAttribute()
+    {
+        return $this->attributes['id_usuario'];
     }
 
     public function getFotoPerfilAttribute($value)

@@ -18,6 +18,14 @@ export function Usuarios() {
   const [usuarioEditar, setUsuarioEditar] = useState(null);
   const [nuevaPass, setNuevaPass] = useState('');
   const [guardando, setGuardando] = useState(false);
+  const formatDateTime = (value) => value ? new Intl.DateTimeFormat('es-MX', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  }).format(new Date(value)) : 'N/A';
 
   useEffect(() => {
     fetchData(() => api.usuarios.getAll());
@@ -139,7 +147,7 @@ export function Usuarios() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-400">
-                      {user.ultima_modificacion || 'N/A'}
+                      {formatDateTime(user.ultima_modificacion)}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button 
@@ -182,7 +190,7 @@ export function Usuarios() {
                   {logs.map(log => (
                     <tr key={log.id} className="text-sm">
                       <td className="px-6 py-4 text-gray-500 whitespace-nowrap">
-                        {new Date(log.fecha).toLocaleString()}
+                        {formatDateTime(log.fecha)}
                       </td>
                       <td className="px-6 py-4 font-medium text-gray-900">
                         {log.usuario}
