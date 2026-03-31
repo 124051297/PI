@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Usuario;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class UsuarioController extends Controller
 {
@@ -44,16 +46,24 @@ class UsuarioController extends Controller
     public function update(Request $request, $id)
     {
         $item = Usuario::findOrFail($id);
-        
+
         $validated = $request->validate([
-            'nombre_usuario' => 'sometimes|string|max:50|unique:usuarios,nombre_usuario,'.$id.',id_usuario',
+            'nombre_usuario' => 'sometimes|string|max:50|unique:usuarios,nombre_usuario,' . $id . ',id_usuario',
             'password' => 'sometimes|nullable|string|min:6',
-            'id_empleado' => 'sometimes|exists:empleados,id_empleado'
+            'id_empleado' => 'sometimes|exists:empleados,id_empleado',
+            'foto_perfil' => 'sometimes|nullable|string',
         ]);
 
         $updateData = [];
-        if (isset($validated['nombre_usuario'])) $updateData['nombre_usuario'] = $validated['nombre_usuario'];
-        if (isset($validated['id_empleado'])) $updateData['id_empleado'] = $validated['id_empleado'];
+        if (isset($validated['nombre_usuario'])) {
+            $updateData['nombre_usuario'] = $validated['nombre_usuario'];
+        }
+        if (isset($validated['id_empleado'])) {
+            $updateData['id_empleado'] = $validated['id_empleado'];
+        }
+        if (array_key_exists('foto_perfil', $validated)) {
+            $updateData['foto_perfil'] = $validated['foto_perfil'];
+        }
         if (!empty($validated['password'])) {
             $updateData['password'] = Hash::make($validated['password']);
         }
@@ -64,33 +74,82 @@ class UsuarioController extends Controller
         $empleado = \App\Models\Empleado::find($item->id_empleado);
         if ($empleado) {
             $empleadoData = [];
-            if (isset($request->nombre)) $empleadoData['nombre'] = $request->nombre;
-            if (isset($request->email)) $empleadoData['correo'] = $request->email;
-            if (isset($request->telefono)) $empleadoData['telefono'] = $request->telefono;
-            if (!empty($empleadoData)) $empleado->update($empleadoData);
-        }
-
-        $userData = $item->toArray();
-        if ($empleado) {
-            $userData['nombre'] = $empleado->nombre;
-            $userData['email'] = $empleado->correo;
-            $userData['telefono'] = $empleado->telefono;
-            
-            // Re-hidratar el rol (Igual que en AuthController)
-            $roleObj = DB::table('roles')->where('id_rol', $empleado->id_rol)->first();
-            if ($roleObj) {
-                $userData['rol'] = strtolower($roleObj->nombre);
+            if (isset($request->nombre)) {
+                $empleadoData['nombre'] = $request->nombre;
             }
-        } else {
-            $userData['rol'] = 'empleado'; // Default fallback
+            if (isset($request->email)) {
+                $empleadoData['correo'] = $request->email;
+            }
+            if (isset($request->telefono)) {
+                $empleadoData['telefono'] = $request->telefono;
+            }
+            if (!empty($empleadoData)) {
+                $empleado->update($empleadoData);
+            }
         }
 
-        return response()->json($userData);
+        return response()->json($this->buildUserPayload($item->fresh(), $empleado));
+    }
+
+    public function updatePhoto(Request $request, $id)
+    {
+        $user = Usuario::findOrFail($id);
+
+        $request->validate([
+            'foto_perfil' => 'required|image|max:4096',
+        ]);
+
+        $previousPath = $user->getRawOriginal('foto_perfil');
+        $storedPath = $request->file('foto_perfil')->store('perfiles', 'public');
+
+        $user->update([
+            'foto_perfil' => $storedPath,
+            'ultima_modificacion' => now(),
+        ]);
+
+        $this->deleteStoredAsset($previousPath);
+
+        return response()->json([
+            'message' => 'Foto de perfil actualizada correctamente.',
+            'foto_perfil' => $user->foto_perfil,
+        ]);
     }
 
     public function destroy($id)
     {
         Usuario::destroy($id);
         return response()->json(null, 204);
+    }
+
+    private function buildUserPayload(Usuario $item, $empleado): array
+    {
+        $userData = $item->toArray();
+
+        if ($empleado) {
+            $userData['nombre'] = $empleado->nombre;
+            $userData['email'] = $empleado->correo;
+            $userData['telefono'] = $empleado->telefono;
+            $userData['empleado'] = $empleado;
+
+            $roleObj = DB::table('roles')->where('id_rol', $empleado->id_rol)->first();
+            if ($roleObj) {
+                $userData['rol'] = strtolower($roleObj->nombre);
+            }
+        } else {
+            $userData['rol'] = 'empleado';
+        }
+
+        return $userData;
+    }
+
+    private function deleteStoredAsset(?string $path): void
+    {
+        if (!$path || Str::startsWith($path, ['http://', 'https://', 'data:'])) {
+            return;
+        }
+
+        if (Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 }

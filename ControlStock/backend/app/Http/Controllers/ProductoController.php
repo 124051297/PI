@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Producto;
 use App\Models\Inventario;
+use App\Models\Producto;
 use App\Models\Ubicacion;
-use App\Models\Area;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ProductoController extends Controller
 {
@@ -19,45 +19,44 @@ class ProductoController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nombre'      => 'required|string|max:250',
-            'precio'      => 'required|numeric|min:0',
+            'nombre' => 'required|string|max:250',
+            'precio' => 'required|numeric|min:0',
             'stockMinimo' => 'required|integer|min:0',
-            'id_categoria'=> 'nullable|exists:categorias,id_categoria',
+            'stock' => 'nullable|integer|min:0',
+            'id_categoria' => 'nullable|exists:categorias,id_categoria',
+            'id_area' => 'nullable|exists:areas,id_area',
+            'area' => 'nullable|string|max:100',
+            'id_ubicacion' => 'nullable|exists:ubicaciones,id_ubicacion',
         ]);
 
         return DB::transaction(function () use ($validated, $request) {
             $producto = Producto::create([
                 'nombre_producto' => $validated['nombre'],
                 'precio_unitario' => $validated['precio'],
-                'stock_minimo'    => $validated['stockMinimo'],
-                'id_categoria'    => $validated['id_categoria'] ?? 1,
+                'stock_minimo' => $validated['stockMinimo'],
+                'id_categoria' => $validated['id_categoria'] ?? 1,
             ]);
 
-            // Si se especifica stock inicial, crear registro en inventario usando la primera ubicación disponible
-            $stockInicial = (int) ($request->stock ?? 0);
+            $stockInicial = (int) ($validated['stock'] ?? 0);
             if ($stockInicial > 0) {
-                // Buscar ubicación: primero por id_ubicacion explícito, luego la primera disponible
-                $id_ubicacion = $request->id_ubicacion;
-                if (!$id_ubicacion) {
-                    $primeraUbicacion = Ubicacion::first();
-                    $id_ubicacion = $primeraUbicacion ? $primeraUbicacion->id_ubicacion : null;
-                }
+                $idUbicacion = $this->resolveUbicacionId($request);
 
-                if ($id_ubicacion) {
-                    Inventario::create([
-                        'id_producto'  => $producto->id_producto,
-                        'id_ubicacion' => $id_ubicacion,
-                        'stock_actual' => $stockInicial,
+                if (!$idUbicacion) {
+                    throw ValidationException::withMessages([
+                        'stock' => ['No existe una ubicacion disponible para registrar el stock inicial.'],
                     ]);
                 }
-            }
 
-            // Reload fresh with appended attributes
-            $producto = Producto::find($producto->id_producto);
+                Inventario::create([
+                    'id_producto' => $producto->id_producto,
+                    'id_ubicacion' => $idUbicacion,
+                    'stock_actual' => $stockInicial,
+                ]);
+            }
 
             return response()->json([
                 'message' => 'Producto creado exitosamente',
-                'data'    => $producto
+                'data' => Producto::find($producto->id_producto),
             ], 201);
         });
     }
@@ -70,28 +69,43 @@ class ProductoController extends Controller
 
     public function update(Request $request, $id)
     {
-        $item = Producto::findOrFail($id);
-
         $validated = $request->validate([
-            'nombre'      => 'sometimes|string|max:250',
-            'precio'      => 'sometimes|numeric|min:0',
+            'nombre' => 'sometimes|string|max:250',
+            'precio' => 'sometimes|numeric|min:0',
             'stockMinimo' => 'sometimes|integer|min:0',
-            'id_categoria'=> 'sometimes|exists:categorias,id_categoria',
+            'stock' => 'sometimes|integer|min:0',
+            'id_categoria' => 'sometimes|exists:categorias,id_categoria',
+            'id_area' => 'nullable|exists:areas,id_area',
+            'area' => 'nullable|string|max:100',
+            'id_ubicacion' => 'nullable|exists:ubicaciones,id_ubicacion',
         ]);
 
-        $item->update([
-            'nombre_producto' => $validated['nombre']      ?? $item->nombre_producto,
-            'precio_unitario' => $validated['precio']      ?? $item->precio_unitario,
-            'stock_minimo'    => $validated['stockMinimo'] ?? $item->stock_minimo,
-            'id_categoria'    => $validated['id_categoria'] ?? $item->id_categoria,
-        ]);
+        return DB::transaction(function () use ($request, $validated, $id) {
+            $producto = Producto::findOrFail($id);
 
-        $item = Producto::find($item->id_producto);
+            $producto->nombre_producto = $validated['nombre'] ?? $producto->nombre_producto;
+            $producto->precio_unitario = $validated['precio'] ?? $producto->precio_unitario;
+            $producto->stock_minimo = $validated['stockMinimo'] ?? $producto->stock_minimo;
 
-        return response()->json([
-            'message' => 'Producto actualizado exitosamente',
-            'data'    => $item
-        ]);
+            if (array_key_exists('id_categoria', $validated)) {
+                $producto->id_categoria = $validated['id_categoria'];
+            }
+
+            $producto->save();
+
+            if (array_key_exists('stock', $validated)) {
+                $this->syncInventoryStock(
+                    $producto,
+                    (int) $validated['stock'],
+                    $this->resolveUbicacionId($request, $producto)
+                );
+            }
+
+            return response()->json([
+                'message' => 'Producto actualizado exitosamente',
+                'data' => Producto::find($producto->id_producto),
+            ]);
+        });
     }
 
     public function destroy($id)
@@ -99,17 +113,96 @@ class ProductoController extends Controller
         $producto = Producto::findOrFail($id);
 
         return DB::transaction(function () use ($producto, $id) {
-            // 1. Eliminar detalles de entradas y salidas (FK sobre id_producto)
             \App\Models\DetalleEntrada::where('id_producto', $id)->delete();
             \App\Models\DetalleSalida::where('id_producto', $id)->delete();
-
-            // 2. Eliminar registros de inventario
             Inventario::where('id_producto', $id)->delete();
-
-            // 3. Eliminar el producto
             $producto->delete();
 
             return response()->json(null, 204);
         });
+    }
+
+    private function resolveUbicacionId(Request $request, ?Producto $producto = null): ?int
+    {
+        if ($request->filled('id_ubicacion')) {
+            return (int) $request->input('id_ubicacion');
+        }
+
+        if ($request->filled('id_area')) {
+            return Ubicacion::where('id_area', $request->input('id_area'))->value('id_ubicacion');
+        }
+
+        if ($request->filled('area')) {
+            $ubicacion = Ubicacion::whereHas('area', function ($query) use ($request) {
+                $query->where('nombre', $request->input('area'));
+            })->first();
+
+            if ($ubicacion) {
+                return $ubicacion->id_ubicacion;
+            }
+        }
+
+        if ($producto) {
+            $inventario = Inventario::where('id_producto', $producto->id_producto)
+                ->orderByDesc('stock_actual')
+                ->first();
+
+            if ($inventario) {
+                return $inventario->id_ubicacion;
+            }
+        }
+
+        return Ubicacion::value('id_ubicacion');
+    }
+
+    private function syncInventoryStock(Producto $producto, int $desiredStock, ?int $preferredUbicacionId): void
+    {
+        $inventarios = Inventario::where('id_producto', $producto->id_producto)->get();
+        $currentStock = (int) $inventarios->sum('stock_actual');
+
+        if ($currentStock === $desiredStock) {
+            return;
+        }
+
+        if ($currentStock < $desiredStock) {
+            if (!$preferredUbicacionId) {
+                throw ValidationException::withMessages([
+                    'stock' => ['No existe una ubicacion disponible para ajustar el stock del producto.'],
+                ]);
+            }
+
+            $inventario = Inventario::firstOrCreate(
+                ['id_producto' => $producto->id_producto, 'id_ubicacion' => $preferredUbicacionId],
+                ['stock_actual' => 0]
+            );
+
+            $inventario->stock_actual += ($desiredStock - $currentStock);
+            $inventario->save();
+            return;
+        }
+
+        $remainingReduction = $currentStock - $desiredStock;
+        $orderedInventarios = $inventarios
+            ->sortByDesc(function ($inventario) use ($preferredUbicacionId) {
+                return ($inventario->id_ubicacion === $preferredUbicacionId ? 1000000 : 0) + $inventario->stock_actual;
+            })
+            ->values();
+
+        foreach ($orderedInventarios as $inventario) {
+            if ($remainingReduction <= 0) {
+                break;
+            }
+
+            $reduction = min($inventario->stock_actual, $remainingReduction);
+            $inventario->stock_actual -= $reduction;
+            $inventario->save();
+            $remainingReduction -= $reduction;
+        }
+
+        if ($remainingReduction > 0) {
+            throw ValidationException::withMessages([
+                'stock' => ['No fue posible ajustar el stock del producto con la informacion disponible.'],
+            ]);
+        }
     }
 }

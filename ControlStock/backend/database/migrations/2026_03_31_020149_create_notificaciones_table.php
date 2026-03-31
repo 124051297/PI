@@ -6,11 +6,12 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
+        if (Schema::hasTable('notificaciones')) {
+            return;
+        }
+
         Schema::create('notificaciones', function (Blueprint $table) {
             $table->id();
             $table->unsignedInteger('id_usuario')->nullable();

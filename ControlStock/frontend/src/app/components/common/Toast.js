@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { CheckCircle, XCircle, AlertCircle, X } from 'lucide-react';
+
 export function Toast({
   type,
   message,
@@ -12,6 +13,7 @@ export function Toast({
       return () => clearTimeout(timer);
     }
   }, [duration, onClose]);
+
   const config = {
     success: {
       icon: CheckCircle,
@@ -42,29 +44,40 @@ export function Toast({
       iconColor: 'text-blue-600'
     }
   };
+
   const {
     icon: Icon,
     bg,
     border,
     text,
     iconColor
-  } = config[type];
-  return <div className={`${bg} ${border} ${text} border rounded-lg p-4 shadow-lg flex items-center gap-3 min-w-[300px] animate-slideIn`}>
+  } = config[type] || config.info;
+
+  return (
+    <div className={`${bg} ${border} ${text} border rounded-lg p-4 shadow-lg flex items-center gap-3 min-w-[300px] animate-slideIn`}>
       <Icon className={`w-5 h-5 ${iconColor} flex-shrink-0`} />
       <p className="flex-1 text-sm font-medium">{message}</p>
-      <button onClick={onClose} className="flex-shrink-0 hover:opacity-70">
+      <button onClick={onClose} className="flex-shrink-0 hover:opacity-70 p-1">
         <X className="w-4 h-4" />
       </button>
-    </div>;
+    </div>
+  );
 }
-
-// Container para múltiples toasts
 
 export function ToastContainer({
   toasts,
-  onRemove
+  removeToast
 }) {
-  return <div className="fixed top-4 right-4 z-50 space-y-2">
-      {toasts.map(toast => <Toast key={toast.id} type={toast.type} message={toast.message} onClose={() => onRemove(toast.id)} />)}
-    </div>;
+  return (
+    <div className="fixed top-4 right-4 z-50 space-y-2">
+      {toasts.map(toast => (
+        <Toast 
+          key={toast.id} 
+          type={toast.type} 
+          message={toast.message} 
+          onClose={() => removeToast(toast.id)} 
+        />
+      ))}
+    </div>
+  );
 }

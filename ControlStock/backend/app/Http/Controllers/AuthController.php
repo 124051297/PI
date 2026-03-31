@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Usuario;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -20,8 +20,7 @@ class AuthController extends Controller
 
         $user = Usuario::where('nombre_usuario', $request->email)->first();
 
-        // Check if user exists and password matches (plain-text or hashed)
-        if (! $user) {
+        if (!$user) {
             throw ValidationException::withMessages([
                 'email' => ['Las credenciales proporcionadas son incorrectas.'],
             ]);
@@ -31,9 +30,7 @@ class AuthController extends Controller
         if ($request->password === $user->password) {
             $passwordMatch = true;
         } elseif (Str::startsWith($user->password, ['$2y$', '$2a$'])) {
-            if (Hash::check($request->password, $user->password)) {
-                $passwordMatch = true;
-            }
+            $passwordMatch = Hash::check($request->password, $user->password);
         }
 
         if (!$passwordMatch) {
@@ -42,7 +39,6 @@ class AuthController extends Controller
             ]);
         }
 
-        // Retrieve role for frontend logic
         $roleName = 'empleado';
         $empleado = DB::table('empleados')->where('id_empleado', $user->id_empleado)->first();
         if ($empleado) {
@@ -54,7 +50,7 @@ class AuthController extends Controller
 
         $userData = $user->toArray();
         $userData['rol'] = $roleName;
-        
+
         if ($empleado) {
             $userData['nombre'] = $empleado->nombre;
             $userData['ap'] = $empleado->ap;
@@ -74,7 +70,38 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            'message' => 'Cierre de sesión exitoso'
+            'message' => 'Cierre de sesion exitoso',
+        ]);
+    }
+
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required|string',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        $user = $request->user();
+        $currentPassword = $request->input('current_password');
+
+        $passwordMatch = $currentPassword === $user->password;
+        if (!$passwordMatch && Str::startsWith($user->password, ['$2y$', '$2a$'])) {
+            $passwordMatch = Hash::check($currentPassword, $user->password);
+        }
+
+        if (!$passwordMatch) {
+            throw ValidationException::withMessages([
+                'current_password' => ['La contrasena actual es incorrecta.'],
+            ]);
+        }
+
+        $user->update([
+            'password' => Hash::make($request->input('password')),
+            'ultima_modificacion' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Contrasena actualizada correctamente.',
         ]);
     }
 }

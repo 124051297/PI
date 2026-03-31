@@ -23,32 +23,34 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user', function (Request $request) { return $request->user(); });
+    Route::post('/change-password', [AuthController::class, 'changePassword']);
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
 
     Route::apiResource('areas', AreaController::class);
     Route::apiResource('categorias', CategoriaController::class);
     Route::apiResource('estados', EstadoProductoController::class);
     Route::apiResource('empleados', EmpleadoController::class);
     Route::apiResource('usuarios', UsuarioController::class);
+    Route::post('/usuarios/{usuario}/foto-perfil', [UsuarioController::class, 'updatePhoto']);
     Route::apiResource('productos', ProductoController::class);
     Route::apiResource('entradas', EntradaController::class);
     Route::apiResource('salidas', SalidaController::class);
     Route::apiResource('ubicaciones', UbicacionController::class);
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
     Route::get('/reportes', [ReporteController::class, 'generar']);
-    
-    // Configuraciones y Logo
+
     Route::get('/configuraciones', [ConfiguracionController::class, 'index']);
     Route::post('/configuraciones/logo', [ConfiguracionController::class, 'updateLogo']);
+    Route::delete('/configuraciones/logo', [ConfiguracionController::class, 'resetLogo']);
 
-    // Notificaciones
     Route::get('/notificaciones', [NotificacionesController::class, 'index']);
     Route::put('/notificaciones/{id}', [NotificacionesController::class, 'update']);
     Route::delete('/notificaciones/{id}', [NotificacionesController::class, 'destroy']);
     Route::post('/notificaciones/mark-all-read', [NotificacionesController::class, 'markAllAsRead']);
     Route::get('/notificaciones/unread-count', [NotificacionesController::class, 'unreadCount']);
-    
-    // Bitacora
+
     Route::get('/bitacora', [BitacoraController::class, 'index']);
 });
 
@@ -64,13 +66,11 @@ Route::get('/db-test', function () {
     try {
         DB::connection()->getPdo();
         return response()->json([
-            "mensaje" => "Conexión a base de datos correcta"
+            'mensaje' => 'Conexion a base de datos correcta'
         ]);
-
     } catch (\Exception $e) {
         return response()->json([
-            "mensaje" => "Error en la conexión a la base de datos"
+            'mensaje' => 'Error en la conexion a la base de datos'
         ]);
-        
     }
 });

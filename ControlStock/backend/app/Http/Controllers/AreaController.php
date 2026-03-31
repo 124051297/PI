@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Area;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class AreaController extends Controller
 {
@@ -16,16 +17,23 @@ class AreaController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nombre'  => 'required|string|max:100|unique:areas,nombre',
+            'nombre' => 'required|string|max:100|unique:areas,nombre',
             'pasillo' => 'nullable|string|max:50',
             'estante' => 'nullable|string|max:50',
-            'nivel'   => 'nullable|string|max:50'
+            'nivel' => 'nullable|string|max:50',
         ]);
 
         return DB::transaction(function () use ($validated, $request) {
-            $area = Area::create(['nombre' => $validated['nombre']]);
+            $payload = ['nombre' => $validated['nombre']];
+            if (Schema::hasColumn('areas', 'created_at')) {
+                $payload['created_at'] = now();
+            }
+            if (Schema::hasColumn('areas', 'updated_at')) {
+                $payload['updated_at'] = now();
+            }
 
-            // Si se especifican datos de ubicación, crearla automáticamente
+            $area = Area::create($payload);
+
             if ($request->filled(['pasillo', 'estante', 'nivel'])) {
                 $codigo = $validated['pasillo'] . '-' . $validated['estante'] . '-' . $validated['nivel'];
                 \App\Models\Ubicacion::updateOrCreate(
@@ -34,19 +42,18 @@ class AreaController extends Controller
                         'id_area' => $area->id_area,
                         'pasillo' => $validated['pasillo'],
                         'estante' => $validated['estante'],
-                        'nivel'   => $validated['nivel']
+                        'nivel' => $validated['nivel'],
                     ]
                 );
             }
 
-            return response()->json($area, 201);
+            return response()->json($area->fresh(), 201);
         });
     }
 
     public function show($id)
     {
         $area = Area::findOrFail($id);
-        // Cargar primera ubicación para edición
         $ubicacion = DB::table('ubicaciones')->where('id_area', $id)->first();
         $data = $area->toArray();
         $data['ubicacion_inicial'] = $ubicacion;
@@ -61,21 +68,26 @@ class AreaController extends Controller
             'nombre' => 'required|string|max:100|unique:areas,nombre,' . $id . ',id_area',
             'pasillo' => 'nullable|string|max:50',
             'estante' => 'nullable|string|max:50',
-            'nivel'   => 'nullable|string|max:50'
+            'nivel' => 'nullable|string|max:50',
         ]);
 
         return DB::transaction(function () use ($area, $validated, $request) {
-            $area->update(['nombre' => $validated['nombre']]);
+            $payload = ['nombre' => $validated['nombre']];
+            if (Schema::hasColumn('areas', 'updated_at')) {
+                $payload['updated_at'] = now();
+            }
+
+            $area->update($payload);
 
             if ($request->filled(['pasillo', 'estante', 'nivel'])) {
                 $codigo = $validated['pasillo'] . '-' . $validated['estante'] . '-' . $validated['nivel'];
                 \App\Models\Ubicacion::updateOrCreate(
-                    ['id_area' => $area->id_area], // Actualizar o crear para esta área
+                    ['id_area' => $area->id_area],
                     [
                         'pasillo' => $validated['pasillo'],
                         'estante' => $validated['estante'],
-                        'nivel'   => $validated['nivel'],
-                        'codigo_ubicacion' => $codigo
+                        'nivel' => $validated['nivel'],
+                        'codigo_ubicacion' => $codigo,
                     ]
                 );
             }
@@ -88,18 +100,17 @@ class AreaController extends Controller
     {
         $area = Area::findOrFail($id);
 
-        // Verificar si hay registros dependientes de forma explícita para devolver un mensaje útil al cliente
         $ubicacionesCount = DB::table('ubicaciones')->where('id_area', $id)->count();
         if ($ubicacionesCount > 0) {
             return response()->json([
-                'message' => 'No se puede eliminar el área "' . $area->nombre . '" porque tiene ' . $ubicacionesCount . ' ubicaciones asignadas. Elimina primero las ubicaciones.'
+                'message' => 'No se puede eliminar el area "' . $area->nombre . '" porque tiene ' . $ubicacionesCount . ' ubicaciones asignadas. Elimina primero las ubicaciones.'
             ], 422);
         }
 
         $empleadosCount = DB::table('empleados')->where('id_area', $id)->count();
         if ($empleadosCount > 0) {
             return response()->json([
-                'message' => 'No se puede eliminar el área "' . $area->nombre . '" porque tiene ' . $empleadosCount . ' empleados asignados.'
+                'message' => 'No se puede eliminar el area "' . $area->nombre . '" porque tiene ' . $empleadosCount . ' empleados asignados.'
             ], 422);
         }
 
