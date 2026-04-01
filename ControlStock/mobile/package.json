@@ -1,0 +1,26 @@
+{
+  "name": "controlstock-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "main": "expo/AppEntry.js",
+  "scripts": {
+    "start": "node --max-old-space-size=4096 ./node_modules/expo/bin/cli start --clear --offline",
+    "android": "set EXPO_NO_DOCTOR=1&& node --max-old-space-size=4096 ./node_modules/expo/bin/cli run:android",
+    "ios": "set EXPO_NO_DOCTOR=1&& node --max-old-space-size=4096 ./node_modules/expo/bin/cli run:ios",
+    "web": "node --max-old-space-size=4096 ./node_modules/expo/bin/cli start --web --offline"
+  },
+  "dependencies": {
+    "@react-navigation/bottom-tabs": "^6.6.1",
+    "@react-navigation/native": "^6.1.18",
+    "@react-navigation/native-stack": "^6.11.0",
+    "expo": "~54.0.33",
+    "expo-status-bar": "~3.0.8",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0"
+  },
+  "devDependencies": {
+    "babel-preset-expo": "~54.0.10"
+  }
+}
