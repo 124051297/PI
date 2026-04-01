@@ -38,11 +38,14 @@ export function EntryScreen() {
     setGuardando(true);
     try {
       await inventoryService.crearEntrada({
-        productoId: productoSel.id || productoSel.id_producto,
-        producto: productoSel.nombre || productoSel.nombre_producto,
-        cantidad: parseInt(cantidad, 10),
-        area: areaSel.nombre,
-        empleado: user?.nombre || user?.nombre_usuario
+        id_empleado: user?.id_empleado,
+        id_area: areaSel.id_area || areaSel.id,
+        items: [
+          {
+            id_producto: productoSel.id_producto || productoSel.id,
+            cantidad: parseInt(cantidad, 10)
+          }
+        ]
       }, token);
 
       setExito(true);

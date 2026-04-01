@@ -39,7 +39,8 @@ export function AuthProvider({ children }) {
     token,
     loading,
     signIn,
-    signOut
+    signOut,
+    setUser
   }), [user, token, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

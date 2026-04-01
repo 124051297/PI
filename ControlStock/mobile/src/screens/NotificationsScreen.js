@@ -94,10 +94,13 @@ export function NotificationsScreen() {
             <Feather name="bell" size={20} color="#ffffff" />
             <Text style={styles.headerTitle}>Notificaciones</Text>
           </View>
-          <TouchableOpacity style={styles.headerBtn}>
-            <View style={styles.alertCountBadge}>
-              <Text style={styles.alertCountText}>{noLeidas}</Text>
-            </View>
+          <TouchableOpacity onPress={() => navigation.navigate('Notificaciones')} style={[styles.headerBtn, styles.headerBtnBadge]}>
+            <Feather name="bell" size={18} color="#ffffff" />
+            {noLeidas > 0 && (
+              <View style={styles.alertCountBadge}>
+                <Text style={styles.alertCountText}>{noLeidas}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -215,18 +218,29 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#ffffff',
   },
+  headerBtnBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
+  },
   alertCountBadge: {
     backgroundColor: '#ef4444',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 4,
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    borderWidth: 1.5,
+    borderColor: '#1d4ed8'
   },
   alertCountText: {
     color: '#fff',
-    fontSize: 10,
-    fontWeight: '700'
+    fontSize: 8,
+    fontWeight: '900'
   },
   content: {
     flex: 1,

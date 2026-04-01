@@ -24,5 +24,13 @@ export const inventoryService = {
     method: 'DELETE'
   }, token),
   dashboardStats: (token) => request('/dashboard/stats', {}, token),
-  areas: (token) => request('/areas', {}, token)
+  areas: (token) => request('/areas', {}, token),
+  updateProfile: (id, payload, token) => request(`/usuarios/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  }, token),
+  updateProfilePhoto: (id, formData, token) => request(`/usuarios/${id}/foto-perfil`, {
+    method: 'POST',
+    body: formData
+  }, token)
 };

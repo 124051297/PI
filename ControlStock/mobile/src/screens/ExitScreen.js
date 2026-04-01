@@ -44,11 +44,14 @@ export function ExitScreen() {
     setGuardando(true);
     try {
       await inventoryService.crearSalida({
-        productoId: productoSel.id || productoSel.id_producto,
-        producto: productoSel.nombre || productoSel.nombre_producto,
-        cantidad: qty,
-        area: areaSel.nombre,
-        empleado: user?.nombre || user?.nombre_usuario
+        id_empleado: user?.id_empleado,
+        id_area: areaSel.id_area || areaSel.id,
+        items: [
+          {
+            id_producto: productoSel.id_producto || productoSel.id,
+            cantidad: qty
+          }
+        ]
       }, token);
 
       setExito(true);
