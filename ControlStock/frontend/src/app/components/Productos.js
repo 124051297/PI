@@ -147,7 +147,8 @@ export function Productos() {
       stock: Number(formData.get('stock')),
       precio: Number(formData.get('precio')),
       stockMinimo: Number(formData.get('stockMinimo')),
-      id_area: formData.get('id_area') ? Number(formData.get('id_area')) : null
+      id_area: formData.get('id_area') ? Number(formData.get('id_area')) : null,
+      codigo: formData.get('codigo') || null
     };
 
     try {
@@ -403,8 +404,14 @@ export function Productos() {
 
             <form onSubmit={handleGuardar} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Codigo del Producto</label>
-                <input type="text" value={productoEditar?.codigo || 'Se genera automaticamente'} readOnly className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg text-gray-500" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Código de Barras / Manual</label>
+                <input 
+                  type="text" 
+                  name="codigo"
+                  defaultValue={productoEditar?.codigo} 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" 
+                  placeholder="Ej: 7501055300072 (O dehar vacío para auto-generar)" 
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Producto</label>

@@ -105,9 +105,27 @@ export function ExitScreen() {
 
         {/* Form */}
         <View style={styles.formGroup}>
-          <Text style={styles.label}>
-            <Feather name="package" size={14} color="#2563eb" /> Producto
-          </Text>
+          <View style={styles.labelRow}>
+            <Text style={styles.label}>
+              <Feather name="package" size={14} color="#2563eb" /> Producto
+            </Text>
+            <TouchableOpacity 
+              style={styles.scanMiniBtn} 
+              onPress={() => navigation.navigate('BarcodeScannerScreen', { 
+                onScan: (code) => {
+                  const found = productos.find(p => String(p.codigo || p.id_producto) === String(code));
+                  if (found) {
+                    setProductoSel(found);
+                  } else {
+                    Alert.alert('No encontrado', `No se encontró ningún producto con el código: ${code}`);
+                  }
+                } 
+              })}
+            >
+              <Feather name="maximize" size={16} color="#2563eb" />
+              <Text style={styles.scanMiniText}>Escanear</Text>
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity style={styles.selector} onPress={() => setModalProdVisible(true)}>
             <Text style={[styles.selectorText, !productoSel && styles.placeholder]}>
               {productoSel ? `${productoSel.codigo || '#'} - ${productoSel.nombre || productoSel.nombre_producto} (Stock: ${productoSel.stock})` : 'Seleccionar producto'}
@@ -236,7 +254,10 @@ const styles = StyleSheet.create({
   noteBox: { backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#ffedd5', padding: 16, borderRadius: 12, marginBottom: 16 },
   noteText: { color: '#9a3412', fontSize: 13, lineHeight: 20 },
   formGroup: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 2 },
-  label: { fontSize: 13, fontWeight: '600', color: '#111827', marginBottom: 8 },
+  label: { fontSize: 13, fontWeight: '600', color: '#111827' },
+  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  scanMiniBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#eff6ff', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, gap: 4, borderWidth: 1, borderColor: '#bfdbfe' },
+  scanMiniText: { fontSize: 12, color: '#2563eb', fontWeight: 'bold' },
   selector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12 },
   selectorText: { fontSize: 15, color: '#111827' },
   placeholder: { color: '#9ca3af' },

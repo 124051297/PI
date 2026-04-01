@@ -78,6 +78,9 @@ class Producto extends Model
 
     public function getCodigoAttribute()
     {
+        if (!empty($this->attributes['codigo'])) {
+            return $this->attributes['codigo'];
+        }
         return 'PROD-' . str_pad($this->id_producto, 3, '0', STR_PAD_LEFT);
     }
 

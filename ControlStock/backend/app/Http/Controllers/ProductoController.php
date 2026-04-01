@@ -28,6 +28,7 @@ class ProductoController extends Controller
             'id_area' => 'nullable|exists:areas,id_area',
             'area' => 'nullable|string|max:100',
             'id_ubicacion' => 'nullable|exists:ubicaciones,id_ubicacion',
+            'codigo' => 'nullable|string|max:100|unique:productos,codigo',
         ]);
 
         return DB::transaction(function () use ($validated, $request) {
@@ -36,6 +37,7 @@ class ProductoController extends Controller
                 'precio_unitario' => $validated['precio'],
                 'stock_minimo' => $validated['stockMinimo'],
                 'id_categoria' => $validated['id_categoria'] ?? 1,
+                'codigo' => $validated['codigo'] ?? null,
             ]);
 
             $stockInicial = (int) ($validated['stock'] ?? 0);
@@ -85,6 +87,7 @@ class ProductoController extends Controller
             'id_area' => 'nullable|exists:areas,id_area',
             'area' => 'nullable|string|max:100',
             'id_ubicacion' => 'nullable|exists:ubicaciones,id_ubicacion',
+            'codigo' => 'nullable|string|max:100|unique:productos,codigo,' . $id . ',id_producto',
         ]);
 
         return DB::transaction(function () use ($request, $validated, $id) {
@@ -96,6 +99,9 @@ class ProductoController extends Controller
 
             if (array_key_exists('id_categoria', $validated)) {
                 $producto->id_categoria = $validated['id_categoria'];
+            }
+            if (array_key_exists('codigo', $validated)) {
+                $producto->codigo = $validated['codigo'];
             }
 
             $producto->save();
