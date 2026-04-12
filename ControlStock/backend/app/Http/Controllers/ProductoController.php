@@ -231,4 +231,46 @@ class ProductoController extends Controller
             ]);
         }
     }
+
+    public function validarStockUbicacion(Request $request)
+    {
+        // Esto permite a la app movil validar si hay stock inmediatamente cuando el usuario
+        // escanea un rack distinto al sugerido en una salida.
+        $validated = $request->validate([
+            'id_producto' => 'required|exists:productos,id_producto',
+            'codigo_ubicacion' => 'required|string',
+        ]);
+
+        $ubicacion = Ubicacion::where('codigo_ubicacion', $validated['codigo_ubicacion'])
+                   ->orWhere('id_ubicacion', $validated['codigo_ubicacion'])
+                   ->first();
+
+        if (!$ubicacion) {
+            return response()->json([
+                'valido' => false,
+                'stock_actual' => 0,
+                'mensaje' => 'La ubicacion escaneada no existe en el sistema.'
+            ], 404);
+        }
+
+        $inventario = Inventario::where('id_producto', $validated['id_producto'])
+            ->where('id_ubicacion', $ubicacion->id_ubicacion)
+            ->first();
+
+        if (!$inventario || $inventario->stock_actual <= 0) {
+            return response()->json([
+                'valido' => false,
+                'stock_actual' => 0,
+                'id_ubicacion_validada' => $ubicacion->id_ubicacion,
+                'mensaje' => 'No hay existencias de este producto en la ubicacion escaneada.'
+            ], 200); // 200 para que el front no quiebre, solo es alerta
+        }
+
+        return response()->json([
+            'valido' => true,
+            'stock_actual' => $inventario->stock_actual,
+            'id_ubicacion_validada' => $ubicacion->id_ubicacion,
+            'mensaje' => 'Stock disponible.'
+        ], 200);
+    }
 }

@@ -25,6 +25,7 @@ export const inventoryService = {
   }, token),
   dashboardStats: (token) => request('/dashboard/stats', {}, token),
   areas: (token) => request('/areas', {}, token),
+  ubicaciones: (token) => request('/ubicaciones', {}, token),
   updateProfile: (id, payload, token) => request(`/usuarios/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload)
@@ -32,5 +33,9 @@ export const inventoryService = {
   updateProfilePhoto: (id, formData, token) => request(`/usuarios/${id}/foto-perfil`, {
     method: 'POST',
     body: formData
+  }, token),
+  validarStockUbicacion: (payload, token) => request('/validar-stock-ubicacion', {
+    method: 'POST',
+    body: JSON.stringify(payload)
   }, token)
 };

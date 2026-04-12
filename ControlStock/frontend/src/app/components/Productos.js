@@ -203,7 +203,7 @@ export function Productos() {
         <div className="flex gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input type="text" placeholder="Buscar por nombre, codigo, area o ubicacion..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+            <input type="text" placeholder="Buscar por nombre, código, área o ubicación..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
           </div>
           <button onClick={() => setMostrarFiltros(!mostrarFiltros)} className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border font-medium transition-all ${mostrarFiltros || filtrosActivos > 0 ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
             <Filter className="w-4 h-4" />
@@ -219,14 +219,14 @@ export function Productos() {
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                   <MapPin className="w-3.5 h-3.5 inline mr-1" />
-                  Area
+                  Área
                 </label>
                 <div className="relative">
                   <select value={filtroArea} onChange={(e) => {
                 setFiltroArea(e.target.value);
                 setFiltroUbicacion('');
               }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none bg-white pr-8 text-sm">
-                    <option value="">Todas las areas</option>
+                    <option value="">Todas las áreas</option>
                     {areasUnicas.map((area) => <option key={area} value={area}>{area}</option>)}
                   </select>
                   <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -274,20 +274,20 @@ export function Productos() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        {productosFiltrados.length === 0 ? <EmptyState icon={Package} title="No hay productos" message="No se encontraron productos que coincidan con tu busqueda" action={user?.rol === 'administrador' ? {
+        {productosFiltrados.length === 0 ? <EmptyState icon={Package} title="No hay productos" message="No se encontraron productos que coincidan con tu búsqueda" action={user?.rol === 'administrador' ? {
         label: 'Agregar primer producto',
         onClick: () => setMostrarModal(true)
       } : undefined} /> : <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Codigo</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre del Producto</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock Minimo</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Area</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ubicacion</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock Mínimo</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Área</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ubicación</th>
                   {user?.rol === 'administrador' && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>}
                 </tr>
               </thead>
@@ -388,7 +388,7 @@ export function Productos() {
           </div>}
       </div>
 
-      {mostrarModal && <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {mostrarModal && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all duration-300">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-900">
@@ -410,7 +410,7 @@ export function Productos() {
                   name="codigo"
                   defaultValue={productoEditar?.codigo} 
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" 
-                  placeholder="Ej: 7501055300072 (O dehar vacío para auto-generar)" 
+                  placeholder="Ej: 7501055300072 (O dejar vacío para auto-generar)" 
                 />
               </div>
               <div>
@@ -429,7 +429,7 @@ export function Productos() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Stock Minimo</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Stock Mínimo</label>
                   <input type="number" name="stockMinimo" defaultValue={productoEditar?.stockMinimo} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder="0" min="0" required />
                 </div>
                 <div>

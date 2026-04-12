@@ -77,6 +77,7 @@ class SalidaController extends Controller
                     'id_salida' => $salida->id_salida,
                     'id_producto' => $item['id_producto'],
                     'cantidad' => $item['cantidad'],
+                    'id_ubicacion' => $idUbicacion,
                 ]);
 
                 $inventario->stock_actual -= $item['cantidad'];

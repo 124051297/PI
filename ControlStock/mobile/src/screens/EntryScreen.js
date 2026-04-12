@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal, FlatList, SafeAreaView, StatusBar, Platform } from 'react-native';
+import { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal, FlatList, SafeAreaView, StatusBar, Platform, ScrollView } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { inventoryService } from '../services/inventoryService';
 import { Feather } from '@expo/vector-icons';
@@ -13,13 +13,16 @@ export function EntryScreen() {
 
   const [productos, setProductos] = useState([]);
   const [areas, setAreas] = useState([]);
+  const [ubicaciones, setUbicaciones] = useState([]);
   
   const [productoSel, setProductoSel] = useState(null);
   const [areaSel, setAreaSel] = useState(null);
+  const [ubicacionSel, setUbicacionSel] = useState(null);
   const [cantidad, setCantidad] = useState('');
   
   const [modalProdVisible, setModalProdVisible] = useState(false);
   const [modalAreaVisible, setModalAreaVisible] = useState(false);
+  const [modalUbicVisible, setModalUbicVisible] = useState(false);
   
   const [guardando, setGuardando] = useState(false);
   const [exito, setExito] = useState(false);
@@ -27,11 +30,17 @@ export function EntryScreen() {
   useEffect(() => {
     inventoryService.productos(token).then(setProductos).catch(()=>[]);
     inventoryService.areas(token).then(setAreas).catch(()=>[]);
+    inventoryService.ubicaciones(token).then(setUbicaciones).catch(()=>[]);
   }, [token]);
+
+  const ubicacionesFiltradas = useMemo(() => {
+    if (!areaSel) return [];
+    return ubicaciones.filter(u => String(u.id_area) === String(areaSel.id_area || areaSel.id));
+  }, [areaSel, ubicaciones]);
 
   const handleSubmit = async () => {
     if (!productoSel || !cantidad || !areaSel) {
-      Alert.alert('Error', 'Por favor completa todos los campos.');
+      Alert.alert('Error', 'Por favor completa los campos obligatorios (Producto, Cantidad y Área).');
       return;
     }
 
@@ -43,7 +52,8 @@ export function EntryScreen() {
         items: [
           {
             id_producto: productoSel.id_producto || productoSel.id,
-            cantidad: parseInt(cantidad, 10)
+            cantidad: parseInt(cantidad, 10),
+            id_ubicacion: ubicacionSel?.id_ubicacion || ubicacionSel?.id
           }
         ]
       }, token);
@@ -51,6 +61,7 @@ export function EntryScreen() {
       setExito(true);
       setProductoSel(null);
       setAreaSel(null);
+      setUbicacionSel(null);
       setCantidad('');
       
       setTimeout(() => {
@@ -90,7 +101,7 @@ export function EntryScreen() {
         </View>
       )}
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.noteBox}>
           <Text style={styles.noteText}>
             <Text style={{fontWeight: 'bold'}}>Nota:</Text> Registra las entradas de productos al inventario. Asegúrate de verificar el producto y la cantidad.
@@ -149,6 +160,19 @@ export function EntryScreen() {
           </TouchableOpacity>
         </View>
 
+        <View style={[styles.formGroup, !areaSel && { opacity: 0.5 }]}>
+          <Text style={styles.label}>Ubicación Específica (Opcional)</Text>
+          <TouchableOpacity 
+            style={styles.selector} 
+            onPress={() => areaSel ? setModalUbicVisible(true) : Alert.alert('Área requerida', 'Selecciona primero un área para filtrar las ubicaciones.')}
+          >
+            <Text style={[styles.selectorText, !ubicacionSel && styles.placeholder]}>
+              {ubicacionSel ? ubicacionSel.codigo_ubicacion : 'Seleccionar ubicación'}
+            </Text>
+            <Feather name="chevron-down" size={18} color="#94a3b8" />
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={guardando}>
           {guardando ? (
             <ActivityIndicator color="#fff" />
@@ -164,7 +188,8 @@ export function EntryScreen() {
           <Text style={styles.employeeLabel}>Registrado por</Text>
           <Text style={styles.employeeValue}>{user?.nombre || user?.nombre_usuario}</Text>
         </View>
-      </View>
+        <View style={{ height: 40 }} />
+      </ScrollView>
 
       {/* Producto Modal */}
       <Modal visible={modalProdVisible} animationType="slide" transparent={true}>
@@ -204,8 +229,37 @@ export function EntryScreen() {
               data={areas}
               keyExtractor={(i) => String(i.id || Math.random())}
               renderItem={({item}) => (
-                <TouchableOpacity style={styles.modalItem} onPress={() => { setAreaSel(item); setModalAreaVisible(false); }}>
+                <TouchableOpacity style={styles.modalItem} onPress={() => { setAreaSel(item); setUbicacionSel(null); setModalAreaVisible(false); }}>
                   <Text style={styles.modalItemTitle}>{item.nombre}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Ubicacion Modal */}
+      <Modal visible={modalUbicVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Seleccionar Ubicación</Text>
+              <TouchableOpacity onPress={() => setModalUbicVisible(false)}>
+                <Feather name="x" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={ubicacionesFiltradas}
+              keyExtractor={(i) => String(i.id_ubicacion || i.id || Math.random())}
+              ListEmptyComponent={
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <Text style={{ color: '#64748b' }}>No hay ubicaciones registradas para esta área.</Text>
+                </View>
+              }
+              renderItem={({item}) => (
+                <TouchableOpacity style={styles.modalItem} onPress={() => { setUbicacionSel(item); setModalUbicVisible(false); }}>
+                  <Text style={styles.modalItemTitle}>{item.codigo_ubicacion}</Text>
+                  <Text style={styles.modalItemSub}>Pasillo: {item.pasillo} | Estante: {item.estante} | Nivel: {item.nivel}</Text>
                 </TouchableOpacity>
               )}
             />

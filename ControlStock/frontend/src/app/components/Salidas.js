@@ -113,7 +113,7 @@ export function Salidas() {
         <h2 className="text-lg font-bold text-gray-900 mb-4">Salidas Recientes</h2>
         {salidas?.length === 0 ? <div className="py-12 flex flex-col items-center justify-center text-gray-400">
             <ShoppingCart className="w-12 h-12 mb-3 opacity-20" />
-            <p>No se han registrado salidas aun</p>
+            <p>No se han registrado salidas aún</p>
           </div> : <div className="space-y-4">
             {salidas?.slice(0, 10).map((salida) => <div key={salida.id} className="border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
                 <div className="bg-gray-50 px-4 py-3 flex justify-between items-center border-b border-gray-100">
@@ -140,7 +140,7 @@ export function Salidas() {
           </div>}
       </div>
 
-      {mostrarModal && <div className="fixed inset-0 z-50 bg-black/50 p-4 flex items-center justify-center">
+      {mostrarModal && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 p-4 flex items-center justify-center transition-all duration-300">
           <div className="w-full max-w-xl rounded-2xl bg-white shadow-xl border border-gray-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-gray-50">
               <div className="flex items-center gap-3">
@@ -157,9 +157,9 @@ export function Salidas() {
             <form onSubmit={handleSubmit} className="space-y-4 p-6">
               <div className="space-y-4 pb-4 border-b border-gray-100">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Area Solicitante *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Área Solicitante *</label>
                   <select value={id_area} onChange={(e) => setIdArea(e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
-                    <option value="">Seleccionar area</option>
+                    <option value="">Seleccionar área</option>
                     {areas?.map((area) => <option key={area.id} value={area.id}>{area.nombre}</option>)}
                   </select>
                 </div>
@@ -184,7 +184,7 @@ export function Salidas() {
                     <ShoppingCart className="w-4 h-4" /> Productos a Retirar
                   </h3>
                   <button type="button" onClick={handleAddItem} className="text-xs flex items-center gap-1 text-red-600 hover:text-red-700 font-bold">
-                    <Plus className="w-3 h-3" /> Anadir otro
+                    <Plus className="w-3 h-3" /> Añadir otro
                   </button>
                 </div>
 
@@ -195,14 +195,26 @@ export function Salidas() {
                           <X className="w-4 h-4" />
                         </button>}
 
-                      <div>
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Producto</label>
-                        <select value={item.id_producto} onChange={(e) => handleItemChange(index, 'id_producto', e.target.value)} required className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-red-500 outline-none">
-                          <option value="">Seleccionar...</option>
-                          {productos?.map((producto) => <option key={producto.id} value={producto.id}>
-                              {producto.nombre} ({producto.stock} dispon.)
-                            </option>)}
-                        </select>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Producto</label>
+                          <select value={item.id_producto} onChange={(e) => handleItemChange(index, 'id_producto', e.target.value)} required className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-red-500 outline-none">
+                            <option value="">Seleccionar...</option>
+                            {productos?.map((producto) => <option key={producto.id} value={producto.id}>
+                                {producto.nombre} ({producto.stock} dispon.)
+                              </option>)}
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Ubicación (Override)</label>
+                          <select value={item.id_ubicacion || ''} onChange={(e) => handleItemChange(index, 'id_ubicacion', e.target.value)} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-red-500 outline-none">
+                            <option value="">Ubicación automática...</option>
+                            {selectedProd?.ubicaciones_detalle?.map((u) => <option key={u.id_ubicacion} value={u.id_ubicacion}>
+                                {u.codigo_ubicacion} (Stock: {u.stock_en_ubicacion})
+                              </option>)}
+                          </select>
+                        </div>
                       </div>
 
                       <div>

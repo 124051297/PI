@@ -60,6 +60,7 @@ class EntradaController extends Controller
                     'id_entrada' => $entrada->id_entrada,
                     'id_producto' => $item['id_producto'],
                     'cantidad' => $item['cantidad'],
+                    'id_ubicacion' => $idUbicacion,
                 ]);
 
                 $inventario = \App\Models\Inventario::firstOrCreate(

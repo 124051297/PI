@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal, FlatList, SafeAreaView, StatusBar, Platform } from 'react-native';
+import { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal, FlatList, SafeAreaView, StatusBar, Platform, ScrollView } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { inventoryService } from '../services/inventoryService';
 import { Feather } from '@expo/vector-icons';
@@ -13,13 +13,16 @@ export function ExitScreen() {
 
   const [productos, setProductos] = useState([]);
   const [areas, setAreas] = useState([]);
+  const [ubicaciones, setUbicaciones] = useState([]);
   
   const [productoSel, setProductoSel] = useState(null);
   const [areaSel, setAreaSel] = useState(null);
+  const [ubicacionSel, setUbicacionSel] = useState(null);
   const [cantidad, setCantidad] = useState('');
   
   const [modalProdVisible, setModalProdVisible] = useState(false);
   const [modalAreaVisible, setModalAreaVisible] = useState(false);
+  const [modalUbicVisible, setModalUbicVisible] = useState(false);
   
   const [guardando, setGuardando] = useState(false);
   const [exito, setExito] = useState(false);
@@ -27,18 +30,76 @@ export function ExitScreen() {
   useEffect(() => {
     inventoryService.productos(token).then(setProductos).catch(()=>[]);
     inventoryService.areas(token).then(setAreas).catch(()=>[]);
+    inventoryService.ubicaciones(token).then(setUbicaciones).catch(()=>[]);
   }, [token]);
+
+  const ubicacionesFiltradas = useMemo(() => {
+    if (!areaSel) return [];
+    return ubicaciones.filter(u => String(u.id_area) === String(areaSel.id_area || areaSel.id));
+  }, [areaSel, ubicaciones]);
+
+  const validarUbicacionFisica = async (codigo_ubicacion) => {
+    if (!productoSel) {
+      Alert.alert('Info', 'Primero selecciona el producto a retirar.');
+      return;
+    }
+    setGuardando(true);
+    try {
+      const res = await inventoryService.validarStockUbicacion({
+        id_producto: productoSel.id_producto || productoSel.id,
+        codigo_ubicacion: codigo_ubicacion
+      }, token);
+
+      if (res.valido) {
+        const ubicacionEncontrada = ubicaciones.find(u => u.id_ubicacion === res.id_ubicacion_validada);
+        if (ubicacionEncontrada) {
+          setUbicacionSel({ ...ubicacionEncontrada, stock_validado: res.stock_actual });
+          setAreaSel(areas.find(a => a.id_area === ubicacionEncontrada.id_area) || areaSel);
+          Alert.alert('Ubicación Confirmada', `Stock disponible: ${res.stock_actual}`);
+        }
+      } else {
+        Alert.alert('Advertencia', res.mensaje || 'No hay stock en la ubicación escaneada.');
+      }
+    } catch(e) {
+      Alert.alert('Error', 'No se pudo validar la ubicación en tiempo real.');
+    } finally {
+      setGuardando(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!productoSel || !cantidad || !areaSel) {
-      Alert.alert('Error', 'Por favor completa todos los campos.');
+      Alert.alert('Error', 'Por favor completa los campos obligatorios (Producto, Cantidad y Área).');
+      return;
+    }
+
+    // Permitir bypass si el area no tiene ubicaciones dinamicas
+    if (!ubicacionSel && ubicacionesFiltradas.length > 0) {
+      Alert.alert('Validación Requerida', 'Esta área tiene ubicaciones dinámicas. Debes validar escaneando el rack o seleccionando una ubicación para continuar.');
       return;
     }
 
     const qty = parseInt(cantidad, 10);
-    if (qty > productoSel.stock) {
-      Alert.alert('Error', `Stock insuficiente. Disponible: ${productoSel.stock}`);
+    if (qty > (productoSel.stock || 0)) {
+      Alert.alert('Error', `Stock insuficiente en almacén general. Disponible: ${productoSel.stock}`);
       return;
+    }
+
+    if (ubicacionSel) {
+      // Verificar stock en el NODO especifico
+      const nodo = productoSel.ubicaciones_detalle?.find(ud => ud.id_ubicacion === ubicacionSel.id_ubicacion);
+      // Si el usuario escaneó recién, maybe guardamos el stock en ubicacionSel.stock_validado
+      const stockEnRack = ubicacionSel.stock_validado !== undefined 
+                            ? ubicacionSel.stock_validado 
+                            : (nodo ? nodo.stock_en_ubicacion : 0);
+
+      if (qty > stockEnRack) {
+        Alert.alert(
+          'Stock Insuficiente en Ubicación', 
+          `No puedes retirar ${qty} uds de este Rack.\n\nFísicamente solo tienes registrado: ${stockEnRack} uds en esta ubicación exacta.`
+        );
+        return;
+      }
     }
 
     setGuardando(true);
@@ -49,7 +110,8 @@ export function ExitScreen() {
         items: [
           {
             id_producto: productoSel.id_producto || productoSel.id,
-            cantidad: qty
+            cantidad: qty,
+            id_ubicacion: ubicacionSel?.id_ubicacion || ubicacionSel?.id
           }
         ]
       }, token);
@@ -57,13 +119,14 @@ export function ExitScreen() {
       setExito(true);
       setProductoSel(null);
       setAreaSel(null);
+      setUbicacionSel(null);
       setCantidad('');
       
       setTimeout(() => {
         setExito(false);
       }, 3000);
     } catch (e) {
-      Alert.alert('Error', 'No se pudo registrar la salida.');
+      Alert.alert('Error', e.message || 'No se pudo registrar la salida. Verifica el stock en la ubicación seleccionada.');
     } finally {
       setGuardando(false);
     }
@@ -96,7 +159,7 @@ export function ExitScreen() {
         </View>
       )}
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.noteBox}>
           <Text style={styles.noteText}>
             <Text style={{fontWeight: 'bold'}}>Importante:</Text> Verifica el stock disponible antes de registrar la salida. No se puede retirar más de lo disponible.
@@ -134,18 +197,7 @@ export function ExitScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Stock Info Dynamic Box */}
-        {productoSel && (
-          <View style={[styles.stockInfo, productoSel.stock < (productoSel.stockMinimo||productoSel.stock_minimo) ? styles.stockInfoLow : null]}>
-            <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 4}}>
-              {productoSel.stock < (productoSel.stockMinimo||productoSel.stock_minimo) && <Feather name="alert-triangle" size={14} color="#dc2626" />}
-              <Text style={styles.stockInfoTitle}>Stock Disponible</Text>
-            </View>
-            <Text style={styles.stockInfoValue}>{productoSel.stock} unidades</Text>
-            <Text style={styles.stockInfoMin}>Stock mínimo: {productoSel.stockMinimo || productoSel.stock_minimo}</Text>
-          </View>
-        )}
-
+        {/* Form Group for qty */}
         <View style={styles.formGroup}>
           <Text style={styles.label}>Cantidad a Retirar</Text>
           <TextInput 
@@ -167,6 +219,30 @@ export function ExitScreen() {
           </TouchableOpacity>
         </View>
 
+        <View style={styles.formGroup}>
+          <View style={styles.labelRow}>
+            <Text style={styles.label}>Validación Dinámica de Ubicación (Requerido)</Text>
+            <TouchableOpacity 
+              style={styles.scanMiniBtn} 
+              onPress={() => navigation.navigate('BarcodeScannerScreen', { 
+                onScan: (code) => validarUbicacionFisica(code) 
+              })}
+            >
+              <Feather name="maximize" size={16} color="#2563eb" />
+              <Text style={styles.scanMiniText}>Validar Rack</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity 
+            style={[styles.selector, ubicacionSel ? { borderColor: '#16a34a', backgroundColor: '#f0fdf4' } : null]} 
+            onPress={() => areaSel ? setModalUbicVisible(true) : Alert.alert('Área requerida', 'Selecciona primero un área para filtrar. O simplemente escanea un Rack para que el sistema busque el área automática (Override).')}
+          >
+            <Text style={[styles.selectorText, !ubicacionSel && styles.placeholder, ubicacionSel ? { color: '#16a34a', fontWeight: 'bold' } : null]}>
+              {ubicacionSel ? `Confirmado: ${ubicacionSel.codigo_ubicacion} (P-${ubicacionSel.pasillo} E-${ubicacionSel.estante} N-${ubicacionSel.nivel})` : 'Escanear o seleccionar ubicación'}
+            </Text>
+            <Feather name={ubicacionSel ? "check-circle" : "chevron-down"} size={18} color={ubicacionSel ? "#16a34a" : "#94a3b8"} />
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={guardando}>
           {guardando ? (
             <ActivityIndicator color="#fff" />
@@ -182,9 +258,10 @@ export function ExitScreen() {
           <Text style={styles.employeeLabel}>Registrado por</Text>
           <Text style={styles.employeeValue}>{user?.nombre || user?.nombre_usuario}</Text>
         </View>
-      </View>
+        <View style={{ height: 40 }} />
+      </ScrollView>
 
-      {/* Producto Modal */}
+      {/* Modal Producto */}
       <Modal visible={modalProdVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -222,8 +299,37 @@ export function ExitScreen() {
               data={areas}
               keyExtractor={(i) => String(i.id || Math.random())}
               renderItem={({item}) => (
-                <TouchableOpacity style={styles.modalItem} onPress={() => { setAreaSel(item); setModalAreaVisible(false); }}>
+                <TouchableOpacity style={styles.modalItem} onPress={() => { setAreaSel(item); setUbicacionSel(null); setModalAreaVisible(false); }}>
                   <Text style={styles.modalItemTitle}>{item.nombre}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Ubicacion Modal */}
+      <Modal visible={modalUbicVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Seleccionar Ubicación</Text>
+              <TouchableOpacity onPress={() => setModalUbicVisible(false)}>
+                <Feather name="x" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={ubicacionesFiltradas}
+              keyExtractor={(i) => String(i.id_ubicacion || i.id || Math.random())}
+              ListEmptyComponent={
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <Text style={{ color: '#64748b' }}>No hay ubicaciones registradas para esta área.</Text>
+                </View>
+              }
+              renderItem={({item}) => (
+                <TouchableOpacity style={styles.modalItem} onPress={() => { setUbicacionSel(item); setModalUbicVisible(false); }}>
+                  <Text style={styles.modalItemTitle}>{item.codigo_ubicacion}</Text>
+                  <Text style={styles.modalItemSub}>Pasillo: {item.pasillo} | Estante: {item.estante} | Nivel: {item.nivel}</Text>
                 </TouchableOpacity>
               )}
             />

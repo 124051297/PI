@@ -146,11 +146,11 @@ export function Notificaciones() {
         <div className="flex items-center gap-3">
           {noLeidas > 0 && <button onClick={marcarTodasComoLeidas} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
               <Check className="w-4 h-4" />
-              Marcar todas como leidas
+              Marcar todas como leídas
             </button>}
           {esAdmin && <button onClick={() => setMostrarModal(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-black rounded-lg transition-colors">
               <Plus className="w-4 h-4" />
-              Nueva notificacion
+              Nueva notificación
             </button>}
         </div>
       </div>
@@ -205,12 +205,12 @@ export function Notificaciones() {
       })}
       </div>
 
-      {mostrarModal && <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      {mostrarModal && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all duration-300">
           <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden">
             <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Crear notificacion</h2>
-                <p className="text-sm text-gray-500">Enviala a todos los empleados o a un usuario especifico</p>
+                <h2 className="text-lg font-bold text-gray-900">Crear notificación</h2>
+                <p className="text-sm text-gray-500">Envíala a todos los empleados o a un usuario específico</p>
               </div>
               <button onClick={cerrarModal} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
@@ -219,13 +219,13 @@ export function Notificaciones() {
 
             <form onSubmit={handleCrearNotificacion} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Titulo</label>
-                <input type="text" value={formState.titulo} onChange={(e) => setFormState((prev) => ({ ...prev, titulo: e.target.value }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ej: Actualizacion de inventario" required />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Título</label>
+                <input type="text" value={formState.titulo} onChange={(e) => setFormState((prev) => ({ ...prev, titulo: e.target.value }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ej: Actualización de inventario" required />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Mensaje</label>
-                <textarea value={formState.mensaje} onChange={(e) => setFormState((prev) => ({ ...prev, mensaje: e.target.value }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none min-h-[120px]" placeholder="Escribe el mensaje que veran los empleados..." required />
+                <textarea value={formState.mensaje} onChange={(e) => setFormState((prev) => ({ ...prev, mensaje: e.target.value }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none min-h-[120px]" placeholder="Escribe el mensaje que verán los empleados..." required />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -252,7 +252,7 @@ export function Notificaciones() {
               </div>
 
               {formState.destinatario === 'todos' && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  Esta opcion envia la notificacion a todos los empleados.
+                  Esta opción envía la notificación a todos los empleados.
                 </div>}
 
               <div className="flex justify-end gap-3 pt-2">

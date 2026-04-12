@@ -183,8 +183,8 @@ export function Areas() {
       <ToastContainer toasts={toasts} removeToast={removeToast} />
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Gestion de Areas</h1>
-        <p className="text-gray-600">Administra las areas y sus ubicaciones en el almacen</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Gestión de Áreas</h1>
+        <p className="text-gray-600">Administra las áreas y sus ubicaciones en el almacén</p>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
@@ -204,7 +204,7 @@ export function Areas() {
       </div>
 
       {areasFiltradas.length === 0 ? <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12">
-          <EmptyState icon={MapPin} message={busqueda ? 'No se encontraron areas' : 'No hay areas registradas'} description={busqueda ? 'Intenta con otro termino de busqueda' : 'Comienza agregando una nueva area'} />
+          <EmptyState icon={MapPin} message={busqueda ? 'No se encontraron áreas' : 'No hay áreas registradas'} description={busqueda ? 'Intenta con otro término de búsqueda' : 'Comienza agregando una nueva área'} />
         </div> : <>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
@@ -212,9 +212,9 @@ export function Areas() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre del Area</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre del Área</th>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Ubicaciones</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha de Creacion</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha de Creación</th>
                     <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                   </tr>
                 </thead>
@@ -289,7 +289,7 @@ export function Areas() {
             </div>}
         </>}
 
-      {mostrarModal && <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {mostrarModal && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all duration-300">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div>
@@ -307,8 +307,8 @@ export function Areas() {
             <form onSubmit={handleGuardar}>
               <div className="p-6 space-y-4">
                 <div>
-                  <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-2">Nombre del Area *</label>
-                  <input type="text" id="nombre" name="nombre" value={formState.nombre} onChange={(e) => setFormState({ nombre: e.target.value })} required placeholder="Ej: Papeleria, Bodega..." className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-2">Nombre del Área *</label>
+                  <input type="text" id="nombre" name="nombre" value={formState.nombre} onChange={(e) => setFormState({ nombre: e.target.value })} required placeholder="Ej: Papelería, Bodega..." className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                 </div>
 
                 <div className="pt-2 border-t border-gray-100">

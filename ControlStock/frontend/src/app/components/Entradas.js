@@ -114,7 +114,7 @@ export function Entradas() {
         <h2 className="text-lg font-bold text-gray-900 mb-4">Entradas Recientes</h2>
         {entradas?.length === 0 ? <div className="py-12 flex flex-col items-center justify-center text-gray-400">
             <ShoppingCart className="w-12 h-12 mb-3 opacity-20" />
-            <p>No se han registrado entradas aun</p>
+            <p>No se han registrado entradas aún</p>
           </div> : <div className="space-y-4">
             {entradas?.slice(0, 10).map((entrada) => <div key={entrada.id} className="border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
                 <div className="bg-gray-50 px-4 py-3 flex justify-between items-center border-b border-gray-100">
@@ -141,7 +141,7 @@ export function Entradas() {
           </div>}
       </div>
 
-      {mostrarModal && <div className="fixed inset-0 z-50 bg-black/50 p-4 flex items-center justify-center">
+      {mostrarModal && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 p-4 flex items-center justify-center transition-all duration-300">
           <div className="w-full max-w-xl rounded-2xl bg-white shadow-xl border border-gray-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-gray-50">
               <div className="flex items-center gap-3">
@@ -158,9 +158,9 @@ export function Entradas() {
             <form onSubmit={handleSubmit} className="space-y-4 p-6">
               <div className="space-y-4 pb-4 border-b border-gray-100">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Area Destino *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Área Destino *</label>
                   <select value={id_area} onChange={(e) => setIdArea(e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none">
-                    <option value="">Seleccionar area</option>
+                    <option value="">Seleccionar área</option>
                     {areas?.map((area) => <option key={area.id} value={area.id}>{area.nombre}</option>)}
                   </select>
                 </div>
@@ -185,28 +185,43 @@ export function Entradas() {
                     <ShoppingCart className="w-4 h-4" /> Productos a Ingresar
                   </h3>
                   <button type="button" onClick={handleAddItem} className="text-xs flex items-center gap-1 text-green-600 hover:text-green-700 font-bold">
-                    <Plus className="w-3 h-3" /> Anadir otro
+                    <Plus className="w-3 h-3" /> Añadir otro
                   </button>
                 </div>
 
-                {items.map((item, index) => <div key={index} className="p-3 bg-gray-50 rounded-lg border border-gray-100 space-y-3 relative">
+                {items.map((item, index) => {
+                const selectedProd = productos?.find((p) => String(p.id) === item.id_producto);
+                return <div key={index} className="p-3 bg-gray-50 rounded-lg border border-gray-100 space-y-3 relative">
                     {items.length > 1 && <button type="button" onClick={() => handleRemoveItem(index)} className="absolute top-2 right-2 text-red-400 hover:text-red-600">
                         <X className="w-4 h-4" />
                       </button>}
 
-                    <div>
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Producto</label>
-                      <select value={item.id_producto} onChange={(e) => handleItemChange(index, 'id_producto', e.target.value)} required className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 outline-none">
-                        <option value="">Seleccionar...</option>
-                        {productos?.map((producto) => <option key={producto.id} value={producto.id}>{producto.nombre}</option>)}
-                      </select>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Producto</label>
+                        <select value={item.id_producto} onChange={(e) => handleItemChange(index, 'id_producto', e.target.value)} required className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 outline-none">
+                          <option value="">Seleccionar...</option>
+                          {productos?.map((producto) => <option key={producto.id} value={producto.id}>{producto.nombre}</option>)}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Ubicación Destino (Opcional)</label>
+                        <select value={item.id_ubicacion || ''} onChange={(e) => handleItemChange(index, 'id_ubicacion', e.target.value)} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 outline-none">
+                          <option value="">Ubicación automática...</option>
+                          {selectedProd?.ubicaciones_detalle?.map((u) => <option key={u.id_ubicacion} value={u.id_ubicacion}>
+                              {u.codigo_ubicacion}
+                            </option>)}
+                        </select>
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Cantidad</label>
                       <input type="number" min="1" value={item.cantidad} onChange={(e) => handleItemChange(index, 'cantidad', e.target.value)} required className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 outline-none" />
                     </div>
-                  </div>)}
+                  </div>;
+              })}
               </div>
 
               <div>

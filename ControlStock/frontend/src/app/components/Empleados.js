@@ -119,7 +119,7 @@ export function Empleados() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestion de Empleados</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Gestión de Empleados</h1>
           <p className="text-gray-500 mt-1">Administra los usuarios y sus roles en el sistema</p>
         </div>
         <button onClick={() => {
@@ -170,8 +170,8 @@ export function Empleados() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empleado</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Correo Electronico</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telefono</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Correo Electrónico</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
               </tr>
@@ -235,7 +235,7 @@ export function Empleados() {
           </div>}
       </div>
 
-      {mostrarModal && <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {mostrarModal && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all duration-300">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-900 mb-4">
               {empleadoEditar ? 'Editar Empleado' : 'Agregar Nuevo Empleado'}
@@ -255,25 +255,25 @@ export function Empleados() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <span className="flex items-center gap-1"><Lock className="w-4 h-4" /> {empleadoEditar ? 'Nueva Contrasena (opcional)' : 'Contrasena'}</span>
+                  <span className="flex items-center gap-1"><Lock className="w-4 h-4" /> {empleadoEditar ? 'Nueva Contraseña (opcional)' : 'Contraseña'}</span>
                 </label>
-                <input type="password" name="password" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder={empleadoEditar ? '(sin cambios)' : 'Contrasena inicial'} />
+                <input type="password" name="password" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder={empleadoEditar ? '(sin cambios)' : 'Contraseña inicial'} />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electronico *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico *</label>
                 <input type="email" name="email" defaultValue={empleadoEditar?.email || empleadoEditar?.correo} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder="correo@ejemplo.com" required />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Telefono</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
                 <input type="tel" name="telefono" defaultValue={empleadoEditar?.telefono} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder="55-1234-5678" />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Area *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Área *</label>
                 <select name="id_area" defaultValue={empleadoEditar?.id_area || areas?.[0]?.id || ''} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" required>
-                  <option value="">Seleccionar area</option>
+                  <option value="">Seleccionar área</option>
                   {areas?.map((area) => <option key={area.id_area || area.id} value={area.id_area || area.id}>{area.nombre}</option>)}
                 </select>
               </div>

@@ -35,6 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('usuarios', UsuarioController::class);
     Route::post('/usuarios/{usuario}/foto-perfil', [UsuarioController::class, 'updatePhoto']);
     Route::apiResource('productos', ProductoController::class);
+    Route::post('/validar-stock-ubicacion', [ProductoController::class, 'validarStockUbicacion']);
     Route::apiResource('entradas', EntradaController::class);
     Route::apiResource('salidas', SalidaController::class);
     Route::apiResource('ubicaciones', UbicacionController::class);
