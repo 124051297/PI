@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Search, Plus, Pencil, Trash2, MapPin, X, Calendar, Layers3 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, Plus, Pencil, Trash2, MapPin, X, Calendar, Layers3, QrCode, Printer, Copy, Check } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useFetch } from '../hooks/useApi';
 import { api } from '../services/api';
 import { LoadingSpinner } from './common/LoadingSpinner';
@@ -22,6 +23,9 @@ export function Areas() {
   const { toasts, removeToast, success, error: showError } = useToast();
   const [paginaActual, setPaginaActual] = useState(1);
   const itemsPorPagina = 10;
+  const [modalQrArea, setModalQrArea] = useState(null);
+  const [copiado, setCopiado] = useState(null);
+  const printRef = useRef(null);
 
   const cargarAreas = async () => {
     await fetchData(() => api.areas.getAll());
@@ -66,7 +70,7 @@ export function Areas() {
 
   const handleEliminar = async (id) => {
     const area = areas.find((item) => (item.id_area || item.id) === id);
-    if (!window.confirm(`Estas seguro de eliminar el area "${area?.nombre}"? Esta accion no se puede deshacer.`)) {
+    if (!window.confirm(`¿Estás seguro de eliminar el área "${area?.nombre}"? Esta acción no se puede deshacer.`)) {
       return;
     }
 
@@ -74,9 +78,9 @@ export function Areas() {
     try {
       await api.areas.delete(id);
       setData(areas?.filter((item) => (item.id_area || item.id) !== id) || null);
-      success('Area eliminada exitosamente');
+      success('Área eliminada exitosamente');
     } catch (err) {
-      showError(err.message || 'Error al eliminar el area');
+      showError(err.message || 'Error al eliminar el área');
     } finally {
       setEliminando(null);
     }
@@ -117,16 +121,16 @@ export function Areas() {
       if (areaEditar) {
         const areaId = areaEditar.id_area || areaEditar.id;
         await api.areas.update(areaId, payload);
-        success('Area actualizada exitosamente');
+        success('Área actualizada exitosamente');
       } else {
         await api.areas.create(payload);
-        success('Area creada exitosamente');
+        success('Área creada exitosamente');
       }
 
       await cargarAreas();
       cerrarModal();
     } catch (err) {
-      showError(err.message || 'Error al guardar el area');
+      showError(err.message || 'Error al guardar el área');
     } finally {
       setGuardando(false);
     }
@@ -167,15 +171,53 @@ export function Areas() {
     setUbicaciones((prev) => prev.length === 1 ? [{ ...emptyUbicacion }] : prev.filter((_, currentIndex) => currentIndex !== index));
   };
 
+  const abrirModalQr = async (area) => {
+    try {
+      const fullData = await api.areas.getById(area.id_area || area.id);
+      setModalQrArea(fullData);
+    } catch {
+      setModalQrArea(area);
+    }
+  };
+
+  const copiarCodigo = (codigo) => {
+    navigator.clipboard.writeText(codigo);
+    setCopiado(codigo);
+    setTimeout(() => setCopiado(null), 2000);
+  };
+
+  const imprimirQrs = () => {
+    const contenido = printRef.current?.innerHTML;
+    if (!contenido) return;
+    const ventana = window.open('', '_blank', 'width=800,height=600');
+    ventana.document.write(`
+      <html><head><title>Códigos QR - ${modalQrArea?.nombre}</title>
+      <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .card { border: 2px dashed #94a3b8; border-radius: 12px; padding: 16px; text-align: center; page-break-inside: avoid; }
+        .area-name { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .codigo { font-size: 13px; font-weight: bold; color: #0f172a; margin-top: 8px; font-family: monospace; word-break: break-all; }
+        .detalle { font-size: 11px; color: #475569; margin-top: 4px; }
+        svg { display: block; margin: 0 auto; }
+        @media print { .grid { grid-template-columns: repeat(3, 1fr); } }
+      </style></head>
+      <body>${contenido}</body></html>
+    `);
+    ventana.document.close();
+    ventana.focus();
+    setTimeout(() => { ventana.print(); }, 300);
+  };
+
   if (loading) {
     return <div className="p-6 flex items-center justify-center min-h-[600px]">
-        <LoadingSpinner size="lg" text="Cargando areas..." />
+        <LoadingSpinner size="lg" text="Cargando áreas..." />
       </div>;
   }
 
   if (error) {
     return <div className="p-6">
-        <ErrorState message="Error al cargar las areas" onRetry={cargarAreas} />
+        <ErrorState message="Error al cargar las áreas" onRetry={cargarAreas} />
       </div>;
   }
 
@@ -231,11 +273,30 @@ export function Areas() {
                             <span className="font-medium text-gray-900">{area.nombre}</span>
                           </div>
                         </td>
+                        <td className="px-6 py-4">
+                          {area.codigo_area ? (
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-2.5 py-1 rounded-md">
+                                <QrCode className="w-3 h-3" />
+                                {area.codigo_area}
+                              </span>
+                              <button
+                                onClick={() => copiarCodigo(area.codigo_area)}
+                                className="p-1 text-gray-400 hover:text-violet-600 transition-colors"
+                                title="Copiar código"
+                              >
+                                {copiado === area.codigo_area ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400 italic">Sin código</span>
+                          )}
+                        </td>
                         <td className="px-6 py-4 text-sm text-gray-600">
                           <div className="space-y-1">
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-1 rounded-full">
                               <Layers3 className="w-3 h-3" />
-                              {area.total_ubicaciones || area.ubicaciones?.length || 0} ubicacion(es)
+                              {area.total_ubicaciones || area.ubicaciones?.length || 0} ubicación(es)
                             </span>
                             {area.ubicaciones?.[0] && <p className="text-xs text-gray-500">
                                 {area.ubicaciones[0].pasillo} / {area.ubicaciones[0].estante} / {area.ubicaciones[0].nivel}
@@ -254,6 +315,9 @@ export function Areas() {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
+                            <button onClick={() => abrirModalQr(area)} className="p-2 text-violet-600 hover:bg-violet-50 rounded-lg transition-colors" title="Ver códigos QR de ubicaciones">
+                              <QrCode className="w-4 h-4" />
+                            </button>
                             <button onClick={() => abrirModalEditar(area)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
                               <Pencil className="w-4 h-4" />
                             </button>
@@ -271,7 +335,7 @@ export function Areas() {
 
           {totalPaginas > 1 && <div className="mt-4 flex items-center justify-between">
               <p className="text-sm text-gray-600">
-                Mostrando {indiceInicio + 1} - {Math.min(indiceFin, areasFiltradas.length)} de {areasFiltradas.length} areas
+                Mostrando {indiceInicio + 1} - {Math.min(indiceFin, areasFiltradas.length)} de {areasFiltradas.length} áreas
               </p>
               <div className="flex gap-2">
                 <button onClick={() => setPaginaActual((p) => Math.max(1, p - 1))} disabled={paginaActual === 1} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
@@ -289,11 +353,139 @@ export function Areas() {
             </div>}
         </>}
 
+      {/* Modal de Códigos QR */}
+      {modalQrArea && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <QrCode className="w-5 h-5 text-violet-600" />
+                  Códigos QR — {modalQrArea.nombre}
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">Imprime estos QR y pégalos en los racks físicos. Al escanearlos desde la app, el sistema identifica la ubicación automáticamente.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={imprimirQrs}
+                  className="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors text-sm font-medium"
+                >
+                  <Printer className="w-4 h-4" />
+                  Imprimir todos
+                </button>
+                <button onClick={() => setModalQrArea(null)} className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* QR Grid */}
+            <div className="overflow-y-auto p-6">
+              {/* Area-level QR */}
+              {modalQrArea.codigo_area && (
+                <div className="mb-8">
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    QR del Área (para escaneo rápido desde el móvil)
+                  </h3>
+                  <div className="border-2 border-violet-300 bg-violet-50/50 rounded-xl p-6 text-center max-w-xs mx-auto">
+                    <p className="text-[10px] font-bold text-violet-400 uppercase tracking-widest mb-3">ÁREA</p>
+                    <QRCodeSVG
+                      value={modalQrArea.codigo_area}
+                      size={180}
+                      level="M"
+                      style={{ margin: '0 auto' }}
+                    />
+                    <p className="font-mono text-base font-bold text-gray-900 mt-4 break-all">{modalQrArea.codigo_area}</p>
+                    <p className="text-sm text-gray-600 mt-1 font-medium">{modalQrArea.nombre}</p>
+                    <button
+                      onClick={() => copiarCodigo(modalQrArea.codigo_area)}
+                      className="mt-3 flex items-center gap-1.5 mx-auto text-xs text-violet-600 hover:text-violet-800 font-medium transition-colors"
+                    >
+                      {copiado === modalQrArea.codigo_area ? (
+                        <><Check className="w-3 h-3 text-green-500" /><span className="text-green-600">Copiado</span></>
+                      ) : (
+                        <><Copy className="w-3 h-3" />Copiar código</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Location-level QRs */}
+              {(!modalQrArea.ubicaciones || modalQrArea.ubicaciones.length === 0) ? (
+                <div className="text-center py-12 text-gray-500">
+                  <MapPin className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p className="font-medium">Esta área no tiene ubicaciones registradas.</p>
+                  <p className="text-sm mt-1">Edita el área y agrega ubicaciones (Pasillo / Estante / Nivel) para generar sus QR.</p>
+                </div>
+              ) : (
+                <>
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <Layers3 className="w-4 h-4" />
+                    QR por Ubicación (Rack / Estante / Nivel)
+                  </h3>
+                  <div ref={printRef} className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                    {/* Include area QR in print grid */}
+                    {modalQrArea.codigo_area && (
+                      <div className="border-2 border-violet-300 bg-violet-50/30 rounded-xl p-5 text-center">
+                        <p className="text-[10px] font-bold text-violet-400 uppercase tracking-widest mb-3">ÁREA</p>
+                        <QRCodeSVG
+                          value={modalQrArea.codigo_area}
+                          size={140}
+                          level="M"
+                          style={{ margin: '0 auto' }}
+                        />
+                        <p className="font-mono text-sm font-bold text-gray-900 mt-3 break-all">{modalQrArea.codigo_area}</p>
+                        <p className="text-xs text-gray-500 mt-1">{modalQrArea.nombre}</p>
+                      </div>
+                    )}
+                    {modalQrArea.ubicaciones.map((ubicacion) => (
+                      <div key={ubicacion.id_ubicacion} className="border-2 border-dashed border-slate-300 rounded-xl p-5 text-center hover:border-violet-400 transition-colors">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">{modalQrArea.nombre}</p>
+                        <QRCodeSVG
+                          value={ubicacion.codigo_ubicacion}
+                          size={140}
+                          level="M"
+                          style={{ margin: '0 auto' }}
+                        />
+                        <p className="font-mono text-sm font-bold text-gray-900 mt-3 break-all">{ubicacion.codigo_ubicacion}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Pasillo {ubicacion.pasillo} · Estante {ubicacion.estante} · Nivel {ubicacion.nivel}
+                        </p>
+                        <button
+                          onClick={() => copiarCodigo(ubicacion.codigo_ubicacion)}
+                          className="mt-3 flex items-center gap-1.5 mx-auto text-xs text-violet-600 hover:text-violet-800 font-medium transition-colors"
+                        >
+                          {copiado === ubicacion.codigo_ubicacion ? (
+                            <><Check className="w-3 h-3 text-green-500" /><span className="text-green-600">Copiado</span></>
+                          ) : (
+                            <><Copy className="w-3 h-3" />Copiar código</>
+                          )}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer hint */}
+            <div className="px-6 pb-5 pt-2 border-t border-gray-100 flex-shrink-0">
+              <p className="text-xs text-gray-400 text-center">
+                💡 El <strong>QR del Área</strong> (<span className="font-mono">codigo_area</span>) permite al empleado escanear el área desde la app móvil para la validación dinámica. Los <strong>QR de ubicación</strong> (<span className="font-mono">codigo_ubicacion</span>) identifican cada rack/estante específico.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {mostrarModal && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all duration-300">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">{areaEditar ? 'Editar Area' : 'Nueva Area'}</h2>
+                <h2 className="text-xl font-bold text-gray-900">{areaEditar ? 'Editar Área' : 'Nueva Área'}</h2>
                 {areaEditar?.fecha_creacion && <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
                     <Calendar className="w-3 h-3" />
                     Creado el {new Date(areaEditar.fecha_creacion).toLocaleString()}
@@ -314,46 +506,46 @@ export function Areas() {
                 <div className="pt-2 border-t border-gray-100">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      Ubicaciones asociadas
-                    </h3>
-                    <button type="button" onClick={agregarUbicacion} className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                      Agregar ubicacion
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {ubicaciones.map((ubicacion, index) => <div key={`${ubicacion.id_ubicacion || 'new'}-${index}`} className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Ubicacion {index + 1}</span>
-                          <button type="button" onClick={() => eliminarUbicacion(index)} className="text-xs text-red-600 hover:text-red-700 font-medium">
-                            Eliminar
-                          </button>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">Pasillo</label>
-                          <input type="text" value={ubicacion.pasillo} onChange={(e) => handleUbicacionChange(index, 'pasillo', e.target.value)} placeholder="Ej: A, B, 1..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">Estante</label>
-                            <input type="text" value={ubicacion.estante} onChange={(e) => handleUbicacionChange(index, 'estante', e.target.value)} placeholder="Ej: 1, 2..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">Nivel / Altura</label>
-                            <input type="text" value={ubicacion.nivel} onChange={(e) => handleUbicacionChange(index, 'nivel', e.target.value)} placeholder="Ej: 1, PB..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" />
-                          </div>
-                        </div>
-
-                        {ubicacion.id_ubicacion && <p className="text-[11px] text-gray-400">ID de ubicacion: #{ubicacion.id_ubicacion}</p>}
-                      </div>)}
-                  </div>
-
-                  <p className="text-xs text-gray-500 mt-3">
-                    Puedes registrar varias ubicaciones para la misma area desde este mismo flujo.
-                  </p>
+                       <MapPin className="w-4 h-4" />
+                       Ubicaciones asociadas
+                     </h3>
+                     <button type="button" onClick={agregarUbicacion} className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                       Agregar ubicación
+                     </button>
+                   </div>
+ 
+                   <div className="space-y-3">
+                     {ubicaciones.map((ubicacion, index) => <div key={`${ubicacion.id_ubicacion || 'new'}-${index}`} className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+                         <div className="flex items-center justify-between">
+                           <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Ubicación {index + 1}</span>
+                           <button type="button" onClick={() => eliminarUbicacion(index)} className="text-xs text-red-600 hover:text-red-700 font-medium">
+                             Eliminar
+                           </button>
+                         </div>
+ 
+                         <div>
+                           <label className="block text-xs font-medium text-gray-500 mb-1">Pasillo</label>
+                           <input type="text" value={ubicacion.pasillo} onChange={(e) => handleUbicacionChange(index, 'pasillo', e.target.value)} placeholder="Ej: A, B, 1..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" />
+                         </div>
+ 
+                         <div className="grid grid-cols-2 gap-4">
+                           <div>
+                             <label className="block text-xs font-medium text-gray-500 mb-1">Estante</label>
+                             <input type="text" value={ubicacion.estante} onChange={(e) => handleUbicacionChange(index, 'estante', e.target.value)} placeholder="Ej: 1, 2..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" />
+                           </div>
+                           <div>
+                             <label className="block text-xs font-medium text-gray-500 mb-1">Nivel / Altura</label>
+                             <input type="text" value={ubicacion.nivel} onChange={(e) => handleUbicacionChange(index, 'nivel', e.target.value)} placeholder="Ej: 1, PB..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" />
+                           </div>
+                         </div>
+ 
+                         {ubicacion.id_ubicacion && <p className="text-[11px] text-gray-400">ID de ubicación: #{ubicacion.id_ubicacion}</p>}
+                       </div>)}
+                   </div>
+ 
+                   <p className="text-xs text-gray-500 mt-3">
+                     Puedes registrar varias ubicaciones para la misma área desde este mismo flujo.
+                   </p>
                 </div>
               </div>
 

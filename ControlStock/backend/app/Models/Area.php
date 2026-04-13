@@ -18,7 +18,7 @@ class Area extends Model
         'updated_at' => 'datetime',
     ];
 
-    protected $appends = ['id', 'nombre', 'fecha_creacion'];
+    protected $appends = ['id', 'nombre', 'codigo_area', 'fecha_creacion'];
 
     public function getIdAttribute()
     {
@@ -28,6 +28,11 @@ class Area extends Model
     public function getNombreAttribute()
     {
         return $this->attributes['nombre'];
+    }
+
+    public function getCodigoAreaAttribute()
+    {
+        return $this->attributes['codigo_area'] ?? null;
     }
 
     public function getFechaCreacionAttribute()

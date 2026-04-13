@@ -46,6 +46,11 @@ class AreaController extends Controller
 
             $area = Area::create($payload);
 
+            // Auto-generate codigo_area based on the new ID
+            if (Schema::hasColumn('areas', 'codigo_area') && empty($area->codigo_area)) {
+                $area->update(['codigo_area' => 'AREA-' . str_pad($area->id_area, 4, '0', STR_PAD_LEFT)]);
+            }
+
             $ubicaciones = $this->extractUbicacionesPayload($validated, $request);
             $this->syncUbicaciones($area, $ubicaciones);
 
@@ -224,6 +229,7 @@ class AreaController extends Controller
     private function formatAreaResponse(Area $area): array
     {
         $data = $area->toArray();
+        $data['codigo_area'] = $area->codigo_area;
         $data['ubicaciones'] = $area->ubicaciones->map(fn (Ubicacion $ubicacion) => [
             'id_ubicacion' => $ubicacion->id_ubicacion,
             'pasillo' => $ubicacion->pasillo,

@@ -38,7 +38,7 @@ export function NotificationsScreen() {
       await inventoryService.marcarNotificacion(id, { leida: true }, token);
       setNotificaciones((prev) => prev.map((n) => n.id === id ? { ...n, leida: true } : n));
     } catch (err) {
-      Alert.alert('Error', 'No se pudo marcar como leida.');
+      Alert.alert('Error', 'No se pudo marcar como leída.');
     }
   };
 
@@ -52,7 +52,7 @@ export function NotificationsScreen() {
   };
 
   const eliminarNotificacion = (id) => {
-    Alert.alert('Eliminar', '¿Estás seguro de eliminar esta notificacion?', [
+    Alert.alert('Eliminar', '¿Estás seguro de eliminar esta notificación?', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Eliminar',
@@ -62,7 +62,7 @@ export function NotificationsScreen() {
             await inventoryService.eliminarNotificacion(id, token);
             setNotificaciones((prev) => prev.filter((n) => n.id !== id));
           } catch (err) {
-             Alert.alert('Error', 'No se pudo eliminar la notificacion.');
+             Alert.alert('Error', 'No se pudo eliminar la notificación.');
           }
         }
       }
@@ -107,13 +107,13 @@ export function NotificationsScreen() {
 
       <View style={styles.content}>
         <Text style={styles.subtitle}>
-          {noLeidas > 0 ? `Tienes ${noLeidas} notificacion${noLeidas > 1 ? 'es' : ''} sin leer` : 'No tienes notificaciones pendientes'}
+          {noLeidas > 0 ? `Tienes ${noLeidas} notificación${noLeidas > 1 ? 'es' : ''} sin leer` : 'No tienes notificaciones pendientes'}
         </Text>
 
         {noLeidas > 0 && (
           <TouchableOpacity style={styles.markAllButton} onPress={marcarTodasComoLeidas}>
             <Feather name="check" size={16} color="#2563eb" />
-            <Text style={styles.markAllText}>Marcar todas como leidas</Text>
+            <Text style={styles.markAllText}>Marcar todas como leídas</Text>
           </TouchableOpacity>
         )}
 
@@ -159,7 +159,7 @@ export function NotificationsScreen() {
                     <View style={styles.actionsRow}>
                       {!item.leida && (
                         <TouchableOpacity onPress={() => marcarComoLeida(item.id)}>
-                          <Text style={styles.actionTextBlue}>Marcar como leida</Text>
+                          <Text style={styles.actionTextBlue}>Marcar como leída</Text>
                         </TouchableOpacity>
                       )}
                       <TouchableOpacity style={styles.deleteButton} onPress={() => eliminarNotificacion(item.id)}>

@@ -38,6 +38,18 @@ export function EntryScreen() {
     return ubicaciones.filter(u => String(u.id_area) === String(areaSel.id_area || areaSel.id));
   }, [areaSel, ubicaciones]);
 
+  const vincularRackPorCodigo = (codigo) => {
+    const foundUbi = ubicaciones.find(u => String(u.codigo_ubicacion) === String(codigo));
+    if (foundUbi) {
+      setUbicacionSel(foundUbi);
+      const areaFound = areas.find(a => a.id_area === foundUbi.id_area);
+      if (areaFound) setAreaSel(areaFound);
+      Alert.alert('Ubicación Vinculada', `Rack: ${foundUbi.codigo_ubicacion}\nÁrea: ${areaFound?.nombre || 'General'}`);
+    } else {
+      Alert.alert('No encontrado', `No se encontró ninguna ubicación con el código: ${codigo}`);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!productoSel || !cantidad || !areaSel) {
       Alert.alert('Error', 'Por favor completa los campos obligatorios (Producto, Cantidad y Área).');
@@ -68,7 +80,7 @@ export function EntryScreen() {
         setExito(false);
       }, 3000);
     } catch (e) {
-      Alert.alert('Error', 'No se pudo registrar la entrada.');
+      Alert.alert('Error al Registrar', e.message || 'No se pudo registrar la entrada.');
     } finally {
       setGuardando(false);
     }
@@ -160,16 +172,27 @@ export function EntryScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.formGroup, !areaSel && { opacity: 0.5 }]}>
-          <Text style={styles.label}>Ubicación Específica (Opcional)</Text>
+        <View style={styles.formGroup}>
+          <View style={styles.labelRow}>
+            <Text style={styles.label}>Ubicación Específica (Opcional)</Text>
+            <TouchableOpacity 
+              style={styles.scanMiniBtn} 
+              onPress={() => navigation.navigate('BarcodeScannerScreen', { 
+                onScan: (code) => vincularRackPorCodigo(code)
+              })}
+            >
+              <Feather name="maximize" size={16} color="#2563eb" />
+              <Text style={styles.scanMiniText}>Escanear Rack</Text>
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity 
-            style={styles.selector} 
-            onPress={() => areaSel ? setModalUbicVisible(true) : Alert.alert('Área requerida', 'Selecciona primero un área para filtrar las ubicaciones.')}
+            style={[styles.selector, ubicacionSel && { borderColor: '#16a34a', backgroundColor: '#f0fdf4' }]} 
+            onPress={() => areaSel ? setModalUbicVisible(true) : Alert.alert('Área requerida', 'Selecciona primero un área o escanea un Rack directamente.')}
           >
-            <Text style={[styles.selectorText, !ubicacionSel && styles.placeholder]}>
-              {ubicacionSel ? ubicacionSel.codigo_ubicacion : 'Seleccionar ubicación'}
+            <Text style={[styles.selectorText, !ubicacionSel && styles.placeholder, ubicacionSel && { color: '#16a34a', fontWeight: 'bold' }]}>
+              {ubicacionSel ? `Rack: ${ubicacionSel.codigo_ubicacion}` : 'Seleccionar o escanear rack'}
             </Text>
-            <Feather name="chevron-down" size={18} color="#94a3b8" />
+            <Feather name={ubicacionSel ? "check-circle" : "chevron-down"} size={18} color={ubicacionSel ? "#16a34a" : "#94a3b8"} />
           </TouchableOpacity>
         </View>
 

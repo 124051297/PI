@@ -39,29 +39,40 @@ export function ExitScreen() {
   }, [areaSel, ubicaciones]);
 
   const validarUbicacionFisica = async (codigo_ubicacion) => {
-    if (!productoSel) {
-      Alert.alert('Info', 'Primero selecciona el producto a retirar.');
-      return;
-    }
     setGuardando(true);
     try {
+      // Intentar encontrar la ubicación localmente primero para identificar el área rápido
+      const localUbi = ubicaciones.find(u => String(u.codigo_ubicacion) === String(codigo_ubicacion));
+      if (localUbi) {
+        setUbicacionSel(localUbi);
+        const areaFound = areas.find(a => a.id_area === localUbi.id_area);
+        if (areaFound) setAreaSel(areaFound);
+      }
+
+      if (!productoSel) {
+        Alert.alert('Ubicación Detectada', 'Ahora selecciona el producto para validar el stock disponible en esta ubicación.');
+        setGuardando(false);
+        return;
+      }
+
       const res = await inventoryService.validarStockUbicacion({
         id_producto: productoSel.id_producto || productoSel.id,
         codigo_ubicacion: codigo_ubicacion
       }, token);
 
       if (res.valido) {
-        const ubicacionEncontrada = ubicaciones.find(u => u.id_ubicacion === res.id_ubicacion_validada);
-        if (ubicacionEncontrada) {
-          setUbicacionSel({ ...ubicacionEncontrada, stock_validado: res.stock_actual });
-          setAreaSel(areas.find(a => a.id_area === ubicacionEncontrada.id_area) || areaSel);
-          Alert.alert('Ubicación Confirmada', `Stock disponible: ${res.stock_actual}`);
-        }
+        setUbicacionSel({ ...localUbi, stock_validado: res.stock_actual });
+        Alert.alert('Validación Exitosa', `Stock disponible en esta ubicación: ${res.stock_actual}`);
       } else {
-        Alert.alert('Advertencia', res.mensaje || 'No hay stock en la ubicación escaneada.');
+        let extraInfo = '';
+        if (res.sugerencias && res.sugerencias.length > 0) {
+          extraInfo = '\n\nPuedes encontrar este producto en:\n' + 
+            res.sugerencias.map(s => `- ${s.area} (Rack: ${s.ubicacion}): ${s.stock} uds`).join('\n');
+        }
+        Alert.alert('Aviso de Stock', (res.mensaje || 'No hay stock en esta ubicación para el producto seleccionado.') + extraInfo);
       }
     } catch(e) {
-      Alert.alert('Error', 'No se pudo validar la ubicación en tiempo real.');
+      Alert.alert('Error', 'No se pudo realizar la validación con el servidor.');
     } finally {
       setGuardando(false);
     }
@@ -126,7 +137,7 @@ export function ExitScreen() {
         setExito(false);
       }, 3000);
     } catch (e) {
-      Alert.alert('Error', e.message || 'No se pudo registrar la salida. Verifica el stock en la ubicación seleccionada.');
+      Alert.alert('Error al Registrar', e.message || 'No se pudo registrar la salida. Verifica el stock en la ubicación seleccionada.');
     } finally {
       setGuardando(false);
     }
@@ -179,6 +190,18 @@ export function ExitScreen() {
                   const found = productos.find(p => String(p.codigo || p.id_producto) === String(code));
                   if (found) {
                     setProductoSel(found);
+                    if (areaSel) {
+                      const idA = areaSel.id_area || areaSel.id;
+                      const hasStockInArea = found.ubicaciones_detalle?.some(ud => String(ud.id_area) === String(idA));
+                      if (!hasStockInArea) {
+                        let msg = `El producto "${found.nombre || found.nombre_producto}" no tiene stock registrado en el área ${areaSel.nombre}.`;
+                        if (found.ubicaciones_detalle?.length > 0) {
+                          msg += '\n\nPuedes encontrarlo en:\n' + 
+                                found.ubicaciones_detalle.map(ud => `- ${ud.area}: ${ud.stock_en_ubicacion} uds`).join('\n');
+                        }
+                        Alert.alert('Consignación de Ubicación', msg);
+                      }
+                    }
                   } else {
                     Alert.alert('No encontrado', `No se encontró ningún producto con el código: ${code}`);
                   }
@@ -275,7 +298,25 @@ export function ExitScreen() {
               data={productos}
               keyExtractor={(i) => String(i.id || i.id_producto || Math.random())}
               renderItem={({item}) => (
-                <TouchableOpacity style={styles.modalItem} onPress={() => { setProductoSel(item); setModalProdVisible(false); }}>
+                <TouchableOpacity 
+                  style={styles.modalItem} 
+                  onPress={() => { 
+                    setProductoSel(item); 
+                    setModalProdVisible(false); 
+                    if (areaSel) {
+                      const idA = areaSel.id_area || areaSel.id;
+                      const hasStockInArea = item.ubicaciones_detalle?.some(ud => String(ud.id_area) === String(idA));
+                      if (!hasStockInArea) {
+                        let msg = `El producto "${item.nombre || item.nombre_producto}" no tiene stock registrado en el área ${areaSel.nombre}.`;
+                        if (item.ubicaciones_detalle?.length > 0) {
+                          msg += '\n\nPuedes encontrarlo en:\n' + 
+                                item.ubicaciones_detalle.map(ud => `- ${ud.area}: ${ud.stock_en_ubicacion} uds`).join('\n');
+                        }
+                        Alert.alert('Consignación de Ubicación', msg);
+                      }
+                    }
+                  }}
+                >
                   <Text style={styles.modalItemTitle}>{item.nombre || item.nombre_producto}</Text>
                   <Text style={styles.modalItemSub}>Stock: {item.stock} | Código: {item.codigo || item.id_producto}</Text>
                 </TouchableOpacity>
@@ -299,7 +340,27 @@ export function ExitScreen() {
               data={areas}
               keyExtractor={(i) => String(i.id || Math.random())}
               renderItem={({item}) => (
-                <TouchableOpacity style={styles.modalItem} onPress={() => { setAreaSel(item); setUbicacionSel(null); setModalAreaVisible(false); }}>
+                <TouchableOpacity 
+                  style={styles.modalItem} 
+                  onPress={() => { 
+                    setAreaSel(item); 
+                    setUbicacionSel(null); 
+                    setModalAreaVisible(false); 
+                    
+                    if (productoSel) {
+                      const idA = item.id_area || item.id;
+                      const hasStockInArea = productoSel.ubicaciones_detalle?.some(ud => String(ud.id_area) === String(idA));
+                      if (!hasStockInArea) {
+                        let msg = `El producto "${productoSel.nombre}" no tiene stock registrado en el área ${item.nombre}.`;
+                        if (productoSel.ubicaciones_detalle?.length > 0) {
+                          msg += '\n\nPuedes encontrarlo en:\n' + 
+                                productoSel.ubicaciones_detalle.map(ud => `- ${ud.area}: ${ud.stock_en_ubicacion} uds`).join('\n');
+                        }
+                        Alert.alert('Consignación de Ubicación', msg);
+                      }
+                    }
+                  }}
+                >
                   <Text style={styles.modalItemTitle}>{item.nombre}</Text>
                 </TouchableOpacity>
               )}

@@ -123,7 +123,7 @@ export function Usuarios() {
                   <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Usuario</th>
                   <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Empleado Asignado</th>
                   <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Rol</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Última Modif.</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Última Modificación</th>
                   <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Acciones</th>
                 </tr>
               </thead>
@@ -153,7 +153,7 @@ export function Usuarios() {
                       <button 
                         onClick={() => { setUsuarioEditar(user); setMostrarModalPass(true); }}
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Cambiar Password"
+                        title="Cambiar Contraseña"
                       >
                         <Key className="w-4 h-4" />
                       </button>

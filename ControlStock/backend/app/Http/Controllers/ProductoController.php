@@ -46,7 +46,7 @@ class ProductoController extends Controller
 
                 if (!$idUbicacion) {
                     throw ValidationException::withMessages([
-                        'stock' => ['No existe una ubicacion disponible para registrar el stock inicial.'],
+                        'stock' => ['No existe una ubicación disponible para registrar el stock inicial.'],
                     ]);
                 }
 
@@ -60,7 +60,7 @@ class ProductoController extends Controller
             SystemLogger::log(
                 'Crear producto',
                 'Producto',
-                'Se creo el producto "' . $producto->nombre_producto . '" con stock inicial de ' . $stockInicial . ' unidades.'
+                'Se creó el producto "' . $producto->nombre_producto . '" con stock inicial de ' . $stockInicial . ' unidades.'
             );
 
             return response()->json([
@@ -117,7 +117,7 @@ class ProductoController extends Controller
             SystemLogger::log(
                 'Actualizar producto',
                 'Producto',
-                'Se actualizo el producto "' . $producto->nombre_producto . '".'
+                'Se actualizó el producto "' . $producto->nombre_producto . '".'
             );
 
             return response()->json([
@@ -141,7 +141,7 @@ class ProductoController extends Controller
             SystemLogger::log(
                 'Eliminar producto',
                 'Producto',
-                'Se elimino el producto "' . $nombreProducto . '".'
+                'Se eliminó el producto "' . $nombreProducto . '".'
             );
 
             return response()->json(null, 204);
@@ -193,7 +193,7 @@ class ProductoController extends Controller
         if ($currentStock < $desiredStock) {
             if (!$preferredUbicacionId) {
                 throw ValidationException::withMessages([
-                    'stock' => ['No existe una ubicacion disponible para ajustar el stock del producto.'],
+                    'stock' => ['No existe una ubicación disponible para ajustar el stock del producto.'],
                 ]);
             }
 
@@ -227,7 +227,7 @@ class ProductoController extends Controller
 
         if ($remainingReduction > 0) {
             throw ValidationException::withMessages([
-                'stock' => ['No fue posible ajustar el stock del producto con la informacion disponible.'],
+                'stock' => ['No fue posible ajustar el stock del producto con la información disponible.'],
             ]);
         }
     }
@@ -249,7 +249,7 @@ class ProductoController extends Controller
             return response()->json([
                 'valido' => false,
                 'stock_actual' => 0,
-                'mensaje' => 'La ubicacion escaneada no existe en el sistema.'
+                'mensaje' => 'La ubicación escaneada no existe en el sistema.'
             ], 404);
         }
 
@@ -258,12 +258,27 @@ class ProductoController extends Controller
             ->first();
 
         if (!$inventario || $inventario->stock_actual <= 0) {
+            // Buscar sugerencias: Donde si hay stock
+            $sugerencias = Inventario::where('id_producto', $validated['id_producto'])
+                ->where('id_ubicacion', '!=', $ubicacion->id_ubicacion)
+                ->where('stock_actual', '>', 0)
+                ->with(['ubicacion.area'])
+                ->get()
+                ->map(function($i) {
+                    return [
+                        'area' => $i->ubicacion->area->nombre ?? 'N/A',
+                        'ubicacion' => $i->ubicacion->codigo_ubicacion,
+                        'stock' => $i->stock_actual
+                    ];
+                });
+
             return response()->json([
                 'valido' => false,
                 'stock_actual' => 0,
                 'id_ubicacion_validada' => $ubicacion->id_ubicacion,
-                'mensaje' => 'No hay existencias de este producto en la ubicacion escaneada.'
-            ], 200); // 200 para que el front no quiebre, solo es alerta
+                'sugerencias' => $sugerencias,
+                'mensaje' => 'No hay existencias de este producto en la ubicación escaneada.'
+            ], 200);
         }
 
         return response()->json([
