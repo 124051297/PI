@@ -45,50 +45,73 @@ class SalidaController extends Controller
 
             foreach ($validated['items'] as $item) {
                 $idUbicacion = $item['id_ubicacion'] ?? null;
+                $cantidadSolicitada = (int)$item['cantidad'];
 
-                if (!$idUbicacion) {
-                    $inventarioConStock = \App\Models\Inventario::where('id_producto', $item['id_producto'])
-                        ->where('stock_actual', '>=', $item['cantidad'])
+                if ($idUbicacion) {
+                    // Validacion de stock total
+                    
+                    $stockTotal = \App\Models\Inventario::where('id_producto', $item['id_producto'])->sum('stock_actual');
+
+                    if ($stockTotal < $cantidadSolicitada) {
+                        throw ValidationException::withMessages([
+                            'items' => ["El sistema indica que solo hay $stockTotal unidades en total de este producto. No puedes retirar $cantidadSolicitada."],
+                        ]);
+                    }
+
+                    $inventario = \App\Models\Inventario::firstOrCreate(
+                        ['id_producto' => $item['id_producto'], 'id_ubicacion' => $idUbicacion],
+                        ['stock_actual' => 0]
+                    );
+
+                    \App\Models\DetalleSalida::create([
+                        'id_salida' => $salida->id_salida,
+                        'id_producto' => $item['id_producto'],
+                        'cantidad' => $cantidadSolicitada,
+                        'id_ubicacion' => $idUbicacion,
+                    ]);
+
+                    $inventario->stock_actual -= $cantidadSolicitada;
+                    $inventario->save();
+                } else {
+                    // Descuento automatico por stock disponible
+                    $inventarios = \App\Models\Inventario::where('id_producto', $item['id_producto'])
+                        ->where('stock_actual', '>', 0)
                         ->orderByDesc('stock_actual')
-                        ->first();
+                        ->get();
 
-                    $idUbicacion = $inventarioConStock?->id_ubicacion
-                        ?? Ubicacion::where('id_area', $validated['id_area'])->value('id_ubicacion')
-                        ?? Ubicacion::value('id_ubicacion');
+                    $stockTotal = $inventarios->sum('stock_actual');
+
+                    if ($stockTotal < $cantidadSolicitada) {
+                        throw ValidationException::withMessages([
+                            'items' => ["Stock total insuficiente para el producto ID {$item['id_producto']}. Requerido: $cantidadSolicitada, Disponible total: $stockTotal."],
+                        ]);
+                    }
+
+                    $pendiente = $cantidadSolicitada;
+                    foreach ($inventarios as $inv) {
+                        if ($pendiente <= 0) break;
+
+                        $aDescontar = min($inv->stock_actual, $pendiente);
+                        
+                        \App\Models\DetalleSalida::create([
+                            'id_salida' => $salida->id_salida,
+                            'id_producto' => $item['id_producto'],
+                            'cantidad' => $aDescontar,
+                            'id_ubicacion' => $inv->id_ubicacion,
+                        ]);
+
+                        $inv->stock_actual -= $aDescontar;
+                        $inv->save();
+                        
+                        $pendiente -= $aDescontar;
+                    }
                 }
-
-                if (!$idUbicacion) {
-                    throw ValidationException::withMessages([
-                        'items' => ['No existe una ubicación registrada para procesar la salida.'],
-                    ]);
-                }
-
-                $inventario = \App\Models\Inventario::where('id_producto', $item['id_producto'])
-                    ->where('id_ubicacion', $idUbicacion)
-                    ->first();
-
-                if (!$inventario || $inventario->stock_actual < $item['cantidad']) {
-                    throw ValidationException::withMessages([
-                        'items' => ["Stock insuficiente para el producto ID {$item['id_producto']} en la ubicación seleccionada."],
-                    ]);
-                }
-
-                \App\Models\DetalleSalida::create([
-                    'id_salida' => $salida->id_salida,
-                    'id_producto' => $item['id_producto'],
-                    'cantidad' => $item['cantidad'],
-                    'id_ubicacion' => $idUbicacion,
-                ]);
-
-                $inventario->stock_actual -= $item['cantidad'];
-                $inventario->save();
-
             }
 
             SystemLogger::log(
                 'Registrar salida',
                 'Salida',
-                'Se registró la salida #' . $salida->id_salida . ' en el área ' . ($salida->area?->nombre ?? 'N/A') . ' con ' . count($validated['items']) . ' producto(s).'
+                'Se registró la salida #' . $salida->id_salida . ' en el área ' . ($salida->area?->nombre ?? 'N/A') . ' con ' . count($validated['items']) . ' tipo(s) de producto.'
             );
 
             return response()->json([

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal, FlatList, SafeAreaView, StatusBar, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal, FlatList, SafeAreaView, StatusBar, Platform, ScrollView, RefreshControl } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { inventoryService } from '../services/inventoryService';
 import { Feather } from '@expo/vector-icons';
@@ -19,19 +19,48 @@ export function ExitScreen() {
   const [areaSel, setAreaSel] = useState(null);
   const [ubicacionSel, setUbicacionSel] = useState(null);
   const [cantidad, setCantidad] = useState('');
+  const [busquedaProd, setBusquedaProd] = useState('');
   
   const [modalProdVisible, setModalProdVisible] = useState(false);
   const [modalAreaVisible, setModalAreaVisible] = useState(false);
   const [modalUbicVisible, setModalUbicVisible] = useState(false);
   
   const [guardando, setGuardando] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [exito, setExito] = useState(false);
 
+  const cargarDatos = async () => {
+    try {
+      const [p, a, u] = await Promise.all([
+        inventoryService.productos(token),
+        inventoryService.areas(token),
+        inventoryService.ubicaciones(token)
+      ]);
+      setProductos(p);
+      setAreas(a);
+      setUbicaciones(u);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
-    inventoryService.productos(token).then(setProductos).catch(()=>[]);
-    inventoryService.areas(token).then(setAreas).catch(()=>[]);
-    inventoryService.ubicaciones(token).then(setUbicaciones).catch(()=>[]);
+    cargarDatos();
   }, [token]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await cargarDatos();
+    setRefreshing(false);
+  };
+
+  const productosFiltradosModal = useMemo(() => {
+    if (!busquedaProd) return productos;
+    return productos.filter(p => 
+      (p.nombre || p.nombre_producto || '').toLowerCase().includes(busquedaProd.toLowerCase()) ||
+      (p.codigo || '').toLowerCase().includes(busquedaProd.toLowerCase())
+    );
+  }, [productos, busquedaProd]);
 
   const ubicacionesFiltradas = useMemo(() => {
     if (!areaSel) return [];
@@ -84,30 +113,34 @@ export function ExitScreen() {
       return;
     }
 
-    // Permitir bypass si el area no tiene ubicaciones dinamicas
-    if (!ubicacionSel && ubicacionesFiltradas.length > 0) {
-      Alert.alert('Validación Requerida', 'Esta área tiene ubicaciones dinámicas. Debes validar escaneando el rack o seleccionando una ubicación para continuar.');
-      return;
-    }
-
     const qty = parseInt(cantidad, 10);
+    // Validacion total
     if (qty > (productoSel.stock || 0)) {
-      Alert.alert('Error', `Stock insuficiente en almacén general. Disponible: ${productoSel.stock}`);
+      Alert.alert('Stock Insuficiente', `El sistema indica que solo tienes ${productoSel.stock} uds disponibles en total. No puedes retirar ${qty}.`);
       return;
     }
 
     if (ubicacionSel) {
-      // Verificar stock en el NODO especifico
-      const nodo = productoSel.ubicaciones_detalle?.find(ud => ud.id_ubicacion === ubicacionSel.id_ubicacion);
-      // Si el usuario escaneó recién, maybe guardamos el stock en ubicacionSel.stock_validado
-      const stockEnRack = ubicacionSel.stock_validado !== undefined 
-                            ? ubicacionSel.stock_validado 
-                            : (nodo ? nodo.stock_en_ubicacion : 0);
+      // Validacion por rack
+      const nodo = productoSel.ubicaciones_detalle?.find(ud => 
+        Number(ud.id_ubicacion || ud.id) === Number(ubicacionSel.id || ubicacionSel.id_ubicacion)
+      );
+      
+      const stockEnRack = nodo ? nodo.stock_en_ubicacion : 0;
 
       if (qty > stockEnRack) {
+        let suggestions = '';
+        if (productoSel.ubicaciones_detalle?.length > 1) {
+          suggestions = '\n\nPuedes intentar retirar de:\n' + 
+            productoSel.ubicaciones_detalle
+              .filter(u => Number(u.id_ubicacion || u.id) !== Number(ubicacionSel.id || ubicacionSel.id_ubicacion))
+              .map(u => `- ${u.area} (${u.codigo_ubicacion}): ${u.stock_en_ubicacion} uds`)
+              .join('\n');
+        }
+
         Alert.alert(
-          'Stock Insuficiente en Ubicación', 
-          `No puedes retirar ${qty} uds de este Rack.\n\nFísicamente solo tienes registrado: ${stockEnRack} uds en esta ubicación exacta.`
+          'Stock Insuficiente en Rack', 
+          `No puedes retirar ${qty} uds de este rack porque solo hay ${stockEnRack} uds registradas.${suggestions}`
         );
         return;
       }
@@ -133,11 +166,15 @@ export function ExitScreen() {
       setUbicacionSel(null);
       setCantidad('');
       
+      // Actualizar datos
+      await cargarDatos();
+
       setTimeout(() => {
         setExito(false);
       }, 3000);
     } catch (e) {
-      Alert.alert('Error al Registrar', e.message || 'No se pudo registrar la salida. Verifica el stock en la ubicación seleccionada.');
+      // Manejo de errores
+      Alert.alert('Error al Registrar', e.message || 'No se pudo registrar la salida. Verifica el stock total disponible.');
     } finally {
       setGuardando(false);
     }
@@ -157,7 +194,7 @@ export function ExitScreen() {
         </View>
       </View>
 
-      {/* Success Modal */}
+
       {exito && (
         <View style={styles.successOverlay}>
           <View style={styles.successCard}>
@@ -170,18 +207,24 @@ export function ExitScreen() {
         </View>
       )}
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#dc2626']} />
+        }
+      >
         <View style={styles.noteBox}>
           <Text style={styles.noteText}>
-            <Text style={{fontWeight: 'bold'}}>Importante:</Text> Verifica el stock disponible antes de registrar la salida. No se puede retirar más de lo disponible.
+            <Text style={{fontWeight: 'bold'}}>Tip:</Text> Desliza hacia abajo para actualizar los stocks si acabas de hacer una entrada o si el administrador agregó productos.
           </Text>
         </View>
 
-        {/* Form */}
+
         <View style={styles.formGroup}>
           <View style={styles.labelRow}>
             <Text style={styles.label}>
-              <Feather name="package" size={14} color="#2563eb" /> Producto
+              <Feather name="package" size={14} color="#dc2626" /> Producto a Retirar
             </Text>
             <TouchableOpacity 
               style={styles.scanMiniBtn} 
@@ -194,33 +237,29 @@ export function ExitScreen() {
                       const idA = areaSel.id_area || areaSel.id;
                       const hasStockInArea = found.ubicaciones_detalle?.some(ud => String(ud.id_area) === String(idA));
                       if (!hasStockInArea) {
-                        let msg = `El producto "${found.nombre || found.nombre_producto}" no tiene stock registrado en el área ${areaSel.nombre}.`;
-                        if (found.ubicaciones_detalle?.length > 0) {
-                          msg += '\n\nPuedes encontrarlo en:\n' + 
-                                found.ubicaciones_detalle.map(ud => `- ${ud.area}: ${ud.stock_en_ubicacion} uds`).join('\n');
-                        }
-                        Alert.alert('Consignación de Ubicación', msg);
+                        let msg = `El sistema no registra stock de "${found.nombre || found.nombre_producto}" en ${areaSel.nombre}, pero puedes intentar registrar la salida si físicamente lo tienes allí.`;
+                        Alert.alert('Aviso de Ubicación', msg);
                       }
                     }
                   } else {
-                    Alert.alert('No encontrado', `No se encontró ningún producto con el código: ${code}`);
+                    Alert.alert('No encontrado', `No se encontró ningún producto con el código: ${code}. Intenta actualizar la lista deslizando hacia abajo.`);
                   }
                 } 
               })}
             >
-              <Feather name="maximize" size={16} color="#2563eb" />
+              <Feather name="maximize" size={16} color="#dc2626" />
               <Text style={styles.scanMiniText}>Escanear</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.selector} onPress={() => setModalProdVisible(true)}>
             <Text style={[styles.selectorText, !productoSel && styles.placeholder]}>
-              {productoSel ? `${productoSel.codigo || '#'} - ${productoSel.nombre || productoSel.nombre_producto} (Stock: ${productoSel.stock})` : 'Seleccionar producto'}
+              {productoSel ? `${productoSel.codigo || '#'} - ${productoSel.nombre || productoSel.nombre_producto} (Total: ${productoSel.stock})` : 'Seleccionar producto'}
             </Text>
             <Feather name="chevron-down" size={18} color="#94a3b8" />
           </TouchableOpacity>
         </View>
 
-        {/* Form Group for qty */}
+
         <View style={styles.formGroup}>
           <Text style={styles.label}>Cantidad a Retirar</Text>
           <TextInput 
@@ -244,23 +283,23 @@ export function ExitScreen() {
 
         <View style={styles.formGroup}>
           <View style={styles.labelRow}>
-            <Text style={styles.label}>Validación Dinámica de Ubicación (Requerido)</Text>
+            <Text style={styles.label}>Validación de Ubicación (Física)</Text>
             <TouchableOpacity 
               style={styles.scanMiniBtn} 
               onPress={() => navigation.navigate('BarcodeScannerScreen', { 
                 onScan: (code) => validarUbicacionFisica(code) 
               })}
             >
-              <Feather name="maximize" size={16} color="#2563eb" />
-              <Text style={styles.scanMiniText}>Validar Rack</Text>
+              <Feather name="maximize" size={16} color="#dc2626" />
+              <Text style={styles.scanMiniText}>Escanear Rack</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity 
             style={[styles.selector, ubicacionSel ? { borderColor: '#16a34a', backgroundColor: '#f0fdf4' } : null]} 
-            onPress={() => areaSel ? setModalUbicVisible(true) : Alert.alert('Área requerida', 'Selecciona primero un área para filtrar. O simplemente escanea un Rack para que el sistema busque el área automática (Override).')}
+            onPress={() => areaSel ? setModalUbicVisible(true) : Alert.alert('Área requerida', 'Selecciona primero un área.')}
           >
             <Text style={[styles.selectorText, !ubicacionSel && styles.placeholder, ubicacionSel ? { color: '#16a34a', fontWeight: 'bold' } : null]}>
-              {ubicacionSel ? `Confirmado: ${ubicacionSel.codigo_ubicacion} (P-${ubicacionSel.pasillo} E-${ubicacionSel.estante} N-${ubicacionSel.nivel})` : 'Escanear o seleccionar ubicación'}
+              {ubicacionSel ? `Confirmado: ${ubicacionSel.codigo_ubicacion}` : 'Seleccionar rack manualmente'}
             </Text>
             <Feather name={ubicacionSel ? "check-circle" : "chevron-down"} size={18} color={ubicacionSel ? "#16a34a" : "#94a3b8"} />
           </TouchableOpacity>
@@ -279,7 +318,7 @@ export function ExitScreen() {
 
         <View style={styles.employeeBox}>
           <Text style={styles.employeeLabel}>Registrado por</Text>
-          <Text style={styles.employeeValue}>{user?.nombre || user?.nombre_usuario}</Text>
+          <Text style={styles.employeeValue}>{user?.nombre || user?.nombre_usuario} (Área: {user?.area || 'N/A'})</Text>
         </View>
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -289,49 +328,61 @@ export function ExitScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Seleccionar Producto</Text>
-              <TouchableOpacity onPress={() => setModalProdVisible(false)}>
+              <Text style={styles.modalTitle}>Buscar Producto</Text>
+              <TouchableOpacity onPress={() => { setModalProdVisible(false); setBusquedaProd(''); }}>
                 <Feather name="x" size={24} color="#64748b" />
               </TouchableOpacity>
             </View>
+            
+            <View style={styles.searchBox}>
+              <Feather name="search" size={18} color="#94a3b8" />
+              <TextInput 
+                style={styles.searchInput} 
+                placeholder="Nombre o código..." 
+                value={busquedaProd}
+                onChangeText={setBusquedaProd}
+              />
+            </View>
+
             <FlatList
-              data={productos}
+              data={productosFiltradosModal}
               keyExtractor={(i) => String(i.id || i.id_producto || Math.random())}
               renderItem={({item}) => (
                 <TouchableOpacity 
                   style={styles.modalItem} 
                   onPress={() => { 
                     setProductoSel(item); 
-                    setModalProdVisible(false); 
-                    if (areaSel) {
-                      const idA = areaSel.id_area || areaSel.id;
-                      const hasStockInArea = item.ubicaciones_detalle?.some(ud => String(ud.id_area) === String(idA));
-                      if (!hasStockInArea) {
-                        let msg = `El producto "${item.nombre || item.nombre_producto}" no tiene stock registrado en el área ${areaSel.nombre}.`;
-                        if (item.ubicaciones_detalle?.length > 0) {
-                          msg += '\n\nPuedes encontrarlo en:\n' + 
-                                item.ubicaciones_detalle.map(ud => `- ${ud.area}: ${ud.stock_en_ubicacion} uds`).join('\n');
-                        }
-                        Alert.alert('Consignación de Ubicación', msg);
-                      }
-                    }
+                    setModalProdVisible(false);
+                    setBusquedaProd('');
                   }}
                 >
-                  <Text style={styles.modalItemTitle}>{item.nombre || item.nombre_producto}</Text>
-                  <Text style={styles.modalItemSub}>Stock: {item.stock} | Código: {item.codigo || item.id_producto}</Text>
+                  <View style={{flex: 1}}>
+                    <Text style={styles.modalItemTitle}>{item.nombre || item.nombre_producto}</Text>
+                    <Text style={styles.modalItemSub}>Código: {item.codigo || item.id_producto} | Área sugerida: {item.area}</Text>
+                  </View>
+                  <View style={[styles.stockBadge, item.stock <= item.stockMinimo ? {backgroundColor: '#fef2f2'} : null]}>
+                    <Text style={[styles.stockBadgeText, item.stock <= item.stockMinimo ? {color: '#dc2626'} : null]}>
+                      {item.stock} uds
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               )}
+              ListEmptyComponent={
+                <View style={{padding: 20, alignItems: 'center'}}>
+                  <Text style={{color: '#64748b'}}>No se encontró el producto.</Text>
+                </View>
+              }
             />
           </View>
         </View>
       </Modal>
 
-      {/* Area Modal */}
+
       <Modal visible={modalAreaVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Seleccionar Área</Text>
+              <Text style={styles.modalTitle}>Área de Salida</Text>
               <TouchableOpacity onPress={() => setModalAreaVisible(false)}>
                 <Feather name="x" size={24} color="#64748b" />
               </TouchableOpacity>
@@ -339,42 +390,43 @@ export function ExitScreen() {
             <FlatList
               data={areas}
               keyExtractor={(i) => String(i.id || Math.random())}
-              renderItem={({item}) => (
-                <TouchableOpacity 
-                  style={styles.modalItem} 
-                  onPress={() => { 
-                    setAreaSel(item); 
-                    setUbicacionSel(null); 
-                    setModalAreaVisible(false); 
-                    
-                    if (productoSel) {
-                      const idA = item.id_area || item.id;
-                      const hasStockInArea = productoSel.ubicaciones_detalle?.some(ud => String(ud.id_area) === String(idA));
-                      if (!hasStockInArea) {
-                        let msg = `El producto "${productoSel.nombre}" no tiene stock registrado en el área ${item.nombre}.`;
-                        if (productoSel.ubicaciones_detalle?.length > 0) {
-                          msg += '\n\nPuedes encontrarlo en:\n' + 
-                                productoSel.ubicaciones_detalle.map(ud => `- ${ud.area}: ${ud.stock_en_ubicacion} uds`).join('\n');
-                        }
-                        Alert.alert('Consignación de Ubicación', msg);
-                      }
-                    }
-                  }}
-                >
-                  <Text style={styles.modalItemTitle}>{item.nombre}</Text>
-                </TouchableOpacity>
-              )}
+              renderItem={({item}) => {
+                const stockEnArea = productoSel?.ubicaciones_detalle
+                  ?.filter(ud => Number(ud.id_area) === Number(item.id_area || item.id))
+                  .reduce((sum, ud) => sum + ud.stock_en_ubicacion, 0) || 0;
+
+                return (
+                  <TouchableOpacity 
+                    style={styles.modalItem} 
+                    onPress={() => { 
+                      setAreaSel(item); 
+                      setUbicacionSel(null); 
+                      setModalAreaVisible(false); 
+                    }}
+                  >
+                    <View style={{flex: 1}}>
+                      <Text style={styles.modalItemTitle}>{item.nombre}</Text>
+                      {productoSel && (
+                        <Text style={[styles.modalItemSub, {color: stockEnArea > 0 ? '#16a34a' : '#64748b'}]}>
+                          Existencias aquí: {stockEnArea} uds
+                        </Text>
+                      )}
+                    </View>
+                    <Feather name="chevron-right" size={18} color="#cbd5e1" />
+                  </TouchableOpacity>
+                );
+              }}
             />
           </View>
         </View>
       </Modal>
 
-      {/* Ubicacion Modal */}
+
       <Modal visible={modalUbicVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Seleccionar Ubicación</Text>
+              <Text style={styles.modalTitle}>Racks en {areaSel?.nombre}</Text>
               <TouchableOpacity onPress={() => setModalUbicVisible(false)}>
                 <Feather name="x" size={24} color="#64748b" />
               </TouchableOpacity>
@@ -384,15 +436,34 @@ export function ExitScreen() {
               keyExtractor={(i) => String(i.id_ubicacion || i.id || Math.random())}
               ListEmptyComponent={
                 <View style={{ padding: 20, alignItems: 'center' }}>
-                  <Text style={{ color: '#64748b' }}>No hay ubicaciones registradas para esta área.</Text>
+                  <Text style={{ color: '#64748b' }}>No hay racks registrados en esta área.</Text>
                 </View>
               }
-              renderItem={({item}) => (
-                <TouchableOpacity style={styles.modalItem} onPress={() => { setUbicacionSel(item); setModalUbicVisible(false); }}>
-                  <Text style={styles.modalItemTitle}>{item.codigo_ubicacion}</Text>
-                  <Text style={styles.modalItemSub}>Pasillo: {item.pasillo} | Estante: {item.estante} | Nivel: {item.nivel}</Text>
-                </TouchableOpacity>
-              )}
+              renderItem={({item}) => {
+                const ud = productoSel?.ubicaciones_detalle?.find(u => Number(u.id_ubicacion || u.id) === Number(item.id || item.id_ubicacion));
+                const stockEnRack = ud ? ud.stock_en_ubicacion : 0;
+
+                return (
+                  <TouchableOpacity 
+                    style={styles.modalItem} 
+                    onPress={() => { 
+                      setUbicacionSel(item); 
+                      setModalUbicVisible(false); 
+                    }}
+                  >
+                    <View style={{flex: 1}}>
+                      <Text style={styles.modalItemTitle}>{item.codigo_ubicacion}</Text>
+                      <Text style={styles.modalItemSub}>Pasillo: {item.pasillo} | Estante: {item.estante} | Nivel: {item.nivel}</Text>
+                      {productoSel && (
+                        <Text style={[styles.modalItemSub, {color: stockEnRack > 0 ? '#16a34a' : '#ef4444', fontWeight: 'bold'}]}>
+                          Stock en este rack: {stockEnRack} uds
+                        </Text>
+                      )}
+                    </View>
+                    <Feather name="chevron-right" size={18} color="#cbd5e1" />
+                  </TouchableOpacity>
+                );
+              }}
             />
           </View>
         </View>
@@ -418,32 +489,31 @@ const styles = StyleSheet.create({
   successTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827', marginBottom: 8 },
   successText: { color: '#4b5563', textAlign: 'center' },
   content: { padding: 16 },
-  noteBox: { backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#ffedd5', padding: 16, borderRadius: 12, marginBottom: 16 },
-  noteText: { color: '#9a3412', fontSize: 13, lineHeight: 20 },
-  formGroup: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 2 },
-  label: { fontSize: 13, fontWeight: '600', color: '#111827' },
-  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  noteBox: { backgroundColor: '#eff6ff', borderWidth: 1, borderColor: '#bfdbfe', padding: 16, borderRadius: 12, marginBottom: 16 },
+  noteText: { color: '#1e40af', fontSize: 13, lineHeight: 20 },
+  formGroup: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 1 },
+  label: { fontSize: 13, fontWeight: '600', color: '#111827', flex: 1, marginRight: 8 },
+  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, overflow: 'hidden' },
   scanMiniBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#eff6ff', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, gap: 4, borderWidth: 1, borderColor: '#bfdbfe' },
   scanMiniText: { fontSize: 12, color: '#2563eb', fontWeight: 'bold' },
   selector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12 },
   selectorText: { fontSize: 15, color: '#111827' },
   placeholder: { color: '#9ca3af' },
   input: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, fontSize: 18, fontWeight: 'bold', color: '#111827' },
-  stockInfo: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, padding: 16, marginBottom: 12 },
-  stockInfoLow: { backgroundColor: '#fef2f2', borderColor: '#fecaca' },
-  stockInfoTitle: { fontSize: 12, fontWeight: '600', color: '#0f172a' },
-  stockInfoValue: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
-  stockInfoMin: { fontSize: 10, color: '#64748b', marginTop: 2 },
-  submitBtn: { backgroundColor: '#dc2626', borderRadius: 12, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 },
+  submitBtn: { backgroundColor: '#dc2626', borderRadius: 12, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 12 },
   submitText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   employeeBox: { backgroundColor: '#f3f4f6', padding: 16, borderRadius: 12, marginTop: 16 },
   employeeLabel: { fontSize: 11, color: '#4b5563', marginBottom: 4 },
   employeeValue: { fontSize: 14, fontWeight: 'bold', color: '#111827' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, height: '70%', padding: 20 },
+  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, height: '85%', padding: 20 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 16 },
   modalTitle: { fontSize: 18, fontWeight: 'bold' },
-  modalItem: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginBottom: 16 },
+  searchInput: { flex: 1, marginLeft: 10, fontSize: 16, color: '#0f172a' },
+  modalItem: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   modalItemTitle: { fontSize: 16, fontWeight: '600', color: '#0f172a' },
-  modalItemSub: { fontSize: 12, color: '#64748b', marginTop: 4 }
+  modalItemSub: { fontSize: 12, color: '#64748b', marginTop: 4 },
+  stockBadge: { backgroundColor: '#f0fdf4', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  stockBadgeText: { fontSize: 12, fontWeight: 'bold', color: '#16a34a' }
 });

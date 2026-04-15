@@ -138,8 +138,8 @@ export function ProductsScreen() {
                       <View style={[styles.iconBox, { backgroundColor: isLow ? '#fee2e2' : '#dbeafe' }]}>
                         <Feather name={isLow ? 'alert-triangle' : 'package'} size={20} color={isLow ? '#dc2626' : '#2563eb'} />
                       </View>
-                      <View>
-                        <Text style={styles.name} numberOfLines={1}>{nombre}</Text>
+                      <View style={{ flex: 1, marginRight: 8 }}>
+                        <Text style={styles.name} numberOfLines={2}>{nombre}</Text>
                         <Text style={styles.code}>#{codigo}</Text>
                       </View>
                     </View>

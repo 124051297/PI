@@ -235,8 +235,7 @@ class ProductoController extends Controller
 
     public function validarStockUbicacion(Request $request)
     {
-        // Esto permite a la app móvil validar si hay stock inmediatamente cuando el usuario
-        // escanea un rack distinto al sugerido en una salida.
+        // Validacion por ubicacion
         $validated = $request->validate([
             'id_producto' => 'required|exists:productos,id_producto',
             'codigo_ubicacion' => 'required|string',
@@ -259,7 +258,7 @@ class ProductoController extends Controller
             ->first();
 
         if (!$inventario || $inventario->stock_actual <= 0) {
-            // Buscar sugerencias: Donde si hay stock
+            // Sugerencias de localizacion
             $sugerencias = Inventario::where('id_producto', $validated['id_producto'])
                 ->where('id_ubicacion', '!=', $ubicacion->id_ubicacion)
                 ->where('stock_actual', '>', 0)
