@@ -35,7 +35,7 @@ class UsuarioController extends Controller
         SystemLogger::log(
             'Crear usuario',
             'Usuario',
-            'Se creo el usuario "' . $item->nombre_usuario . '".'
+            'Se creó el usuario "' . $item->nombre_usuario . '".'
         );
 
         return response()->json([
@@ -96,9 +96,9 @@ class UsuarioController extends Controller
         }
 
         SystemLogger::log(
-            !empty($validated['password']) ? 'Actualizar usuario y contrasena' : 'Actualizar usuario',
+            !empty($validated['password']) ? 'Actualizar usuario y contraseña' : 'Actualizar usuario',
             'Usuario',
-            'Se actualizo el usuario "' . $item->nombre_usuario . '".'
+            'Se actualizó el usuario "' . $item->nombre_usuario . '".'
         );
 
         return response()->json($this->buildUserPayload($item->fresh(), $empleado));
@@ -125,7 +125,7 @@ class UsuarioController extends Controller
         SystemLogger::log(
             'Actualizar foto de perfil',
             'Usuario',
-            'Se actualizo la foto de perfil del usuario "' . $user->nombre_usuario . '".'
+            'Se actualizó la foto de perfil del usuario "' . $user->nombre_usuario . '".'
         );
 
         return response()->json([
@@ -143,7 +143,7 @@ class UsuarioController extends Controller
         SystemLogger::log(
             'Eliminar usuario',
             'Usuario',
-            'Se elimino el usuario "' . $nombreUsuario . '".'
+            'Se eliminó el usuario "' . $nombreUsuario . '".'
         );
 
         return response()->json(null, 204);

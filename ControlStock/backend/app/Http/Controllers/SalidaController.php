@@ -59,7 +59,7 @@ class SalidaController extends Controller
 
                 if (!$idUbicacion) {
                     throw ValidationException::withMessages([
-                        'items' => ['No existe una ubicacion registrada para procesar la salida.'],
+                        'items' => ['No existe una ubicación registrada para procesar la salida.'],
                     ]);
                 }
 
@@ -69,7 +69,7 @@ class SalidaController extends Controller
 
                 if (!$inventario || $inventario->stock_actual < $item['cantidad']) {
                     throw ValidationException::withMessages([
-                        'items' => ["Stock insuficiente para el producto ID {$item['id_producto']} en la ubicacion seleccionada."],
+                        'items' => ["Stock insuficiente para el producto ID {$item['id_producto']} en la ubicación seleccionada."],
                     ]);
                 }
 
@@ -88,7 +88,7 @@ class SalidaController extends Controller
             SystemLogger::log(
                 'Registrar salida',
                 'Salida',
-                'Se registro la salida #' . $salida->id_salida . ' en el area ' . ($salida->area?->nombre ?? 'N/A') . ' con ' . count($validated['items']) . ' producto(s).'
+                'Se registró la salida #' . $salida->id_salida . ' en el área ' . ($salida->area?->nombre ?? 'N/A') . ' con ' . count($validated['items']) . ' producto(s).'
             );
 
             return response()->json([
@@ -110,7 +110,7 @@ class SalidaController extends Controller
         SystemLogger::log(
             'Actualizar salida',
             'Salida',
-            'Se actualizo la salida #' . $item->id_salida . '.'
+            'Se actualizó la salida #' . $item->id_salida . '.'
         );
         return response()->json($item);
     }
@@ -123,7 +123,7 @@ class SalidaController extends Controller
         SystemLogger::log(
             'Eliminar salida',
             'Salida',
-            'Se elimino la salida #' . $id . '.'
+            'Se eliminó la salida #' . $id . '.'
         );
         return response()->json(null, 204);
     }

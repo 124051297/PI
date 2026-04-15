@@ -58,7 +58,7 @@ export function Notificaciones() {
       await api.notificaciones.update(id, { leida: true });
       setNotificaciones((prev) => prev.map((n) => n.id === id ? { ...n, leida: true } : n));
     } catch (err) {
-      console.error('Error al marcar como leida', err);
+      console.error('Error al marcar como leída', err);
     }
   };
 
@@ -103,11 +103,11 @@ export function Notificaciones() {
         id_usuarios: formState.destinatario && formState.destinatario !== 'todos' ? [Number(formState.destinatario)] : []
       });
 
-      success('Notificacion enviada correctamente');
+      success('Notificación enviada correctamente');
       cerrarModal();
       await cargarNotificaciones();
     } catch (err) {
-      showError(err.message || 'Error al crear la notificacion');
+      showError(err.message || 'Error al crear la notificación');
     } finally {
       setGuardando(false);
     }
@@ -139,7 +139,7 @@ export function Notificaciones() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Notificaciones</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {noLeidas > 0 ? `Tienes ${noLeidas} notificacion${noLeidas > 1 ? 'es' : ''} sin leer` : 'No tienes notificaciones pendientes'}
+            {noLeidas > 0 ? `Tienes ${noLeidas} notificación${noLeidas > 1 ? 'es' : ''} sin leer` : 'No tienes notificaciones pendientes'}
           </p>
         </div>
 
@@ -192,7 +192,7 @@ export function Notificaciones() {
                       </p>}
                     <div className="flex items-center gap-4">
                       {!notificacion.leida && <button onClick={() => marcarComoLeida(notificacion.id)} className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-                          Marcar como leida
+                          Marcar como leída
                         </button>}
                       <button onClick={() => eliminarNotificacion(notificacion.id)} className="text-xs text-red-600 hover:text-red-700 font-medium flex items-center gap-1">
                         <Trash2 className="w-3 h-3" />
@@ -233,7 +233,7 @@ export function Notificaciones() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
                   <select value={formState.tipo} onChange={(e) => setFormState((prev) => ({ ...prev, tipo: e.target.value }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
                     <option value="info">Informativa</option>
-                    <option value="success">Exito</option>
+                    <option value="success">Éxito</option>
                     <option value="warning">Advertencia</option>
                     <option value="error">Urgente</option>
                   </select>

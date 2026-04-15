@@ -46,7 +46,7 @@ class UbicacionController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Ubicación creada exitosamente',
+            'message' => 'Ubicación creada con éxito',
             'data' => $item
         ], 201);
     }

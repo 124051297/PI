@@ -86,7 +86,7 @@ export function Entradas() {
       };
 
       await api.entradas.create(payload);
-      success('Entrada(s) registrada(s) con exito');
+      success('Entrada(s) registrada(s) con éxito');
       await fetchEntradas(() => api.entradas.getAll());
       await fetchProductos(() => api.productos.getAll());
       cerrarModal();

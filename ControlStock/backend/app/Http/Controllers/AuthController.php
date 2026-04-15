@@ -70,7 +70,7 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            'message' => 'Cierre de sesion exitoso',
+            'message' => 'Cierre de sesión exitoso',
         ]);
     }
 
@@ -91,7 +91,7 @@ class AuthController extends Controller
 
         if (!$passwordMatch) {
             throw ValidationException::withMessages([
-                'current_password' => ['La contrasena actual es incorrecta.'],
+                'current_password' => ['La contraseña actual es incorrecta.'],
             ]);
         }
 
@@ -101,7 +101,7 @@ class AuthController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Contrasena actualizada correctamente.',
+            'message' => 'Contraseña actualizada correctamente.',
         ]);
     }
 }

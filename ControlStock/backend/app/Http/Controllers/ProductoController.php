@@ -185,6 +185,7 @@ class ProductoController extends Controller
     {
         $inventarios = Inventario::where('id_producto', $producto->id_producto)->get();
         $currentStock = (int) $inventarios->sum('stock_actual');
+        
 
         if ($currentStock === $desiredStock) {
             return;
@@ -234,7 +235,7 @@ class ProductoController extends Controller
 
     public function validarStockUbicacion(Request $request)
     {
-        // Esto permite a la app movil validar si hay stock inmediatamente cuando el usuario
+        // Esto permite a la app móvil validar si hay stock inmediatamente cuando el usuario
         // escanea un rack distinto al sugerido en una salida.
         $validated = $request->validate([
             'id_producto' => 'required|exists:productos,id_producto',
@@ -266,7 +267,7 @@ class ProductoController extends Controller
                 ->get()
                 ->map(function($i) {
                     return [
-                        'area' => $i->ubicacion->area->nombre ?? 'N/A',
+                        'area' => optional($i->ubicacion->area)->nombre ?? 'N/A',
                         'ubicacion' => $i->ubicacion->codigo_ubicacion,
                         'stock' => $i->stock_actual
                     ];

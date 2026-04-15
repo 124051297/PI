@@ -94,10 +94,10 @@ class ReporteController extends Controller
     private function buildPeriodLabel(string $tipo, ?string $inicio, ?string $fin): string
     {
         return match ($tipo) {
-            'semana' => 'Ultima semana',
-            'mes' => 'Ultimo mes',
-            'ano' => 'Ultimo ano',
-            'especifico' => $inicio ? 'Fecha: ' . $inicio : 'Fecha especifica',
+            'semana' => 'Última semana',
+            'mes' => 'Último mes',
+            'ano' => 'Último año',
+            'especifico' => $inicio ? 'Fecha: ' . $inicio : 'Fecha específica',
             'rango' => ($inicio && $fin) ? "Del {$inicio} al {$fin}" : 'Rango personalizado',
             default => 'Periodo personalizado',
         };

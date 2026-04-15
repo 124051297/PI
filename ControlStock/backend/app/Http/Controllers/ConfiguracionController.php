@@ -59,7 +59,7 @@ class ConfiguracionController extends Controller
         );
 
         return response()->json([
-            'message' => 'Logo actualizado con exito',
+            'message' => 'Logo actualizado con éxito',
             'logo' => $storedValue,
             'logo_url' => $this->resolveStoredAssetUrl($storedValue),
         ]);
@@ -68,7 +68,7 @@ class ConfiguracionController extends Controller
     public function resetLogo()
     {
         if (!Schema::hasTable('configuraciones')) {
-            return response()->json(['message' => 'Configuracion restaurada.']);
+            return response()->json(['message' => 'Configuración restaurada.']);
         }
 
         $currentPath = DB::table('configuraciones')->where('clave', 'logo_empresa')->value('valor');

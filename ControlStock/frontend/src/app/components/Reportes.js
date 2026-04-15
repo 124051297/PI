@@ -85,7 +85,7 @@ export function Reportes() {
           <h1>Reporte Ejecutivo ControlStock</h1>
           <div class="meta">
             <p><strong>Periodo:</strong> ${datos.periodo_label}</p>
-            <p><strong>Fecha de generacion:</strong> ${datos.fecha_generacion}</p>
+            <p><strong>Fecha de generación:</strong> ${datos.fecha_generacion}</p>
           </div>
           <table class="summary">
             <tr><td><strong>Total movimientos</strong></td><td>${datos.summary.total_movimientos}</td></tr>
@@ -97,7 +97,7 @@ export function Reportes() {
           <table>
             <thead>
               <tr>
-                <th>Accion</th>
+                <th>Acción</th>
                 <th>Entidad</th>
                 <th>Detalles</th>
                 <th>Usuario</th>
@@ -110,14 +110,14 @@ export function Reportes() {
           <table>
             <thead>
               <tr>
-                <th>Codigo</th>
+                <th>Código</th>
                 <th>Producto</th>
-                <th>Categoria</th>
+                <th>Categoría</th>
                 <th>Stock</th>
-                <th>Minimo</th>
+                <th>Mínimo</th>
                 <th>Precio</th>
-                <th>Area</th>
-                <th>Ubicacion</th>
+                <th>Área</th>
+                <th>Ubicación</th>
               </tr>
             </thead>
             <tbody>${inventarioRows || '<tr><td colspan="8">Sin productos registrados.</td></tr>'}</tbody>
@@ -152,7 +152,7 @@ export function Reportes() {
 
     autoTable(doc, {
       startY: 140,
-      head: [['Accion', 'Entidad', 'Detalles', 'Usuario', 'Fecha']],
+      head: [['Acción', 'Entidad', 'Detalles', 'Usuario', 'Fecha']],
       body: datos.movimientos.map((row) => [row.accion, row.entidad, row.detalles, row.usuario, row.fecha]),
       theme: 'grid',
       headStyles: { fillColor: [29, 78, 216] },
@@ -166,7 +166,7 @@ export function Reportes() {
 
     autoTable(doc, {
       startY: doc.lastAutoTable.finalY + 24,
-      head: [['Codigo', 'Producto', 'Categoria', 'Stock', 'Minimo', 'Precio', 'Area', 'Ubicacion']],
+      head: [['Código', 'Producto', 'Categoría', 'Stock', 'Mínimo', 'Precio', 'Área', 'Ubicación']],
       body: datos.inventario.map((item) => [
         item.codigo,
         item.nombre,
@@ -191,7 +191,7 @@ export function Reportes() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Modulo de Reportes</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Módulo de Reportes</h1>
           <p className="text-gray-500 mt-1">Genera reportes ejecutivos y descargas profesionales del sistema.</p>
         </div>
       </div>
@@ -201,10 +201,10 @@ export function Reportes() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Periodo</label>
             <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-              <option value="semana">Ultima Semana</option>
-              <option value="mes">Ultimo Mes</option>
-              <option value="ano">Ultimo Ano</option>
-              <option value="especifico">Fecha Especifica</option>
+              <option value="semana">Última Semana</option>
+              <option value="mes">Último Mes</option>
+              <option value="ano">Último Año</option>
+              <option value="especifico">Fecha Específica</option>
               <option value="rango">Rango de Fechas</option>
             </select>
           </div>
@@ -300,7 +300,7 @@ export function Reportes() {
                   <table className="w-full text-sm">
                     <thead className="bg-blue-600 text-white sticky top-0">
                       <tr>
-                        <th className="px-3 py-2 text-left">Accion</th>
+                        <th className="px-3 py-2 text-left">Acción</th>
                         <th className="px-3 py-2 text-left">Entidad</th>
                         <th className="px-3 py-2 text-left">Usuario</th>
                         <th className="px-3 py-2 text-left">Fecha</th>
@@ -326,11 +326,11 @@ export function Reportes() {
                   <table className="w-full text-sm">
                     <thead className="bg-emerald-600 text-white sticky top-0">
                       <tr>
-                        <th className="px-3 py-2 text-left">Codigo</th>
+                        <th className="px-3 py-2 text-left">Código</th>
                         <th className="px-3 py-2 text-left">Producto</th>
                         <th className="px-3 py-2 text-left">Stock</th>
-                        <th className="px-3 py-2 text-left">Minimo</th>
-                        <th className="px-3 py-2 text-left">Area</th>
+                        <th className="px-3 py-2 text-left">Mínimo</th>
+                        <th className="px-3 py-2 text-left">Área</th>
                       </tr>
                     </thead>
                     <tbody>

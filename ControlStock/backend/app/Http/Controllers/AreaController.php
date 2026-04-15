@@ -55,9 +55,9 @@ class AreaController extends Controller
             $this->syncUbicaciones($area, $ubicaciones);
 
             SystemLogger::log(
-                'Crear area',
-                'Area',
-                'Se creo el area "' . $area->nombre . '" con ' . $area->ubicaciones()->count() . ' ubicacion(es).'
+                'Crear área',
+                'Área',
+                'Se creó el área "' . $area->nombre . '" con ' . $area->ubicaciones()->count() . ' ubicación(es).'
             );
 
             return response()->json($this->formatAreaResponse($area->fresh('ubicaciones')), 201);
@@ -98,9 +98,9 @@ class AreaController extends Controller
             $this->syncUbicaciones($area, $ubicaciones);
 
             SystemLogger::log(
-                'Actualizar area',
-                'Area',
-                'Se actualizo el area "' . $area->nombre . '" y sus ubicaciones.'
+                'Actualizar área',
+                'Área',
+                'Se actualizó el área "' . $area->nombre . '" y sus ubicaciones.'
             );
 
             return response()->json($this->formatAreaResponse($area->fresh('ubicaciones')));
@@ -114,14 +114,28 @@ class AreaController extends Controller
         $ubicacionesCount = DB::table('ubicaciones')->where('id_area', $id)->count();
         if ($ubicacionesCount > 0) {
             return response()->json([
-                'message' => 'No se puede eliminar el area "' . $area->nombre . '" porque tiene ' . $ubicacionesCount . ' ubicaciones asignadas. Elimina primero las ubicaciones.'
+                'message' => 'No se puede eliminar el área "' . $area->nombre . '" porque tiene ' . $ubicacionesCount . ' ubicaciones asignadas. Elimina primero las ubicaciones.'
             ], 422);
         }
 
         $empleadosCount = DB::table('empleados')->where('id_area', $id)->count();
         if ($empleadosCount > 0) {
             return response()->json([
-                'message' => 'No se puede eliminar el area "' . $area->nombre . '" porque tiene ' . $empleadosCount . ' empleados asignados.'
+                'message' => 'No se puede eliminar el área "' . $area->nombre . '" porque tiene ' . $empleadosCount . ' empleados asignados.'
+            ], 422);
+        }
+
+        $entradasCount = DB::table('entradas')->where('id_area', $id)->count();
+        if ($entradasCount > 0) {
+            return response()->json([
+                'message' => 'No se puede eliminar el área "' . $area->nombre . '" porque tiene ' . $entradasCount . ' registros de entrada en el historial.'
+            ], 422);
+        }
+
+        $salidasCount = DB::table('salidas')->where('id_area', $id)->count();
+        if ($salidasCount > 0) {
+            return response()->json([
+                'message' => 'No se puede eliminar el área "' . $area->nombre . '" porque tiene ' . $salidasCount . ' registros de salida en el historial.'
             ], 422);
         }
 
@@ -129,9 +143,9 @@ class AreaController extends Controller
         $area->delete();
 
         SystemLogger::log(
-            'Eliminar area',
-            'Area',
-            'Se elimino el area "' . $areaNombre . '".'
+            'Eliminar área',
+            'Área',
+            'Se eliminó el área "' . $areaNombre . '".'
         );
 
         return response()->json(null, 204);
@@ -173,7 +187,7 @@ class AreaController extends Controller
 
             if (in_array($codigo, $seenCodes, true)) {
                 throw ValidationException::withMessages([
-                    'ubicaciones' => ['No puedes registrar ubicaciones duplicadas dentro de la misma area.'],
+                    'ubicaciones' => ['No puedes registrar ubicaciones duplicadas dentro de la misma área.'],
                 ]);
             }
 
@@ -213,7 +227,7 @@ class AreaController extends Controller
 
                 if ($tieneInventario) {
                     throw ValidationException::withMessages([
-                        'ubicaciones' => ['No se puede eliminar una ubicacion que ya tiene inventario asociado.'],
+                        'ubicaciones' => ['No se puede eliminar una ubicación que ya tiene inventario asociado.'],
                     ]);
                 }
 

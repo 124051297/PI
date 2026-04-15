@@ -56,23 +56,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/bitacora', [BitacoraController::class, 'index']);
 });
 
-Route::get('/test', function () {
-    return response()->json([
-        'mensaje' => 'API funcionando'
-    ]);
-});
 
-use Illuminate\Support\Facades\DB;
-
-Route::get('/db-test', function () {
-    try {
-        DB::connection()->getPdo();
-        return response()->json([
-            'mensaje' => 'Conexion a base de datos correcta'
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'mensaje' => 'Error en la conexion a la base de datos'
-        ]);
-    }
-});

@@ -66,7 +66,7 @@ class NotificacionesController extends Controller
 
         if (!$paraTodos && $destinatarios->isEmpty()) {
             throw ValidationException::withMessages([
-                'id_usuarios' => ['Selecciona al menos un destinatario o marca la opcion para todos.'],
+                'id_usuarios' => ['Selecciona al menos un destinatario o marca la opción para todos.'],
             ]);
         }
 
@@ -97,15 +97,15 @@ class NotificacionesController extends Controller
         });
 
         SystemLogger::log(
-            'Crear notificacion',
-            'Notificacion',
+            'Crear notificación',
+            'Notificación',
             $paraTodos
-                ? 'Se envio la notificacion "' . $validated['titulo'] . '" a todos los empleados.'
-                : 'Se envio la notificacion "' . $validated['titulo'] . '" a ' . $creadas->count() . ' destinatario(s).'
+                ? 'Se envió la notificación "' . $validated['titulo'] . '" a todos los empleados.'
+                : 'Se envió la notificación "' . $validated['titulo'] . '" a ' . $creadas->count() . ' destinatario(s).'
         );
 
         return response()->json([
-            'message' => 'Notificacion creada correctamente.',
+            'message' => 'Notificación creada correctamente.',
             'data' => $creadas,
         ], 201);
     }
@@ -121,7 +121,7 @@ class NotificacionesController extends Controller
             ->get();
 
         foreach ($productosBajoStock as $producto) {
-            $mensaje = 'El producto "' . $producto->nombre_producto . '" tiene solo ' . ($producto->stock_actual ?? 0) . ' unidades (Minimo: ' . $producto->stock_minimo . ')';
+            $mensaje = 'El producto "' . $producto->nombre_producto . '" tiene solo ' . ($producto->stock_actual ?? 0) . ' unidades (Mínimo: ' . $producto->stock_minimo . ')';
 
             $existe = Notificacion::where('titulo', 'Alerta de Stock Bajo')
                 ->where('mensaje', $mensaje)
@@ -169,7 +169,7 @@ class NotificacionesController extends Controller
         }
 
         $query->update(['leida' => true]);
-        return response()->json(['message' => 'Todas marcadas como leidas']);
+        return response()->json(['message' => 'Todas marcadas como leídas']);
     }
 
     public function unreadCount(Request $request)
@@ -195,7 +195,7 @@ class NotificacionesController extends Controller
         }
 
         if ($notificacion->id_usuario !== null && $notificacion->id_usuario !== $request->user()?->id_usuario) {
-            abort(403, 'No tienes permisos para modificar esta notificacion.');
+            abort(403, 'No tienes permisos para modificar esta notificación.');
         }
     }
 

@@ -101,7 +101,7 @@ export function Areas() {
 
     const hayUbicacionIncompleta = ubicacionesNormalizadas.some((ubicacion) => !ubicacion.pasillo || !ubicacion.estante || !ubicacion.nivel);
     if (hayUbicacionIncompleta) {
-      showError('Cada ubicacion debe incluir pasillo, estante y nivel');
+      showError('Cada ubicación debe incluir pasillo, estante y nivel');
       setGuardando(false);
       return;
     }
@@ -112,7 +112,7 @@ export function Areas() {
     };
 
     if (!payload.nombre) {
-      showError('El nombre del area es requerido');
+      showError('El nombre del área es requerido');
       setGuardando(false);
       return;
     }
@@ -233,14 +233,14 @@ export function Areas() {
         <div className="flex gap-4 items-center justify-between">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input type="text" placeholder="Buscar areas..." value={busqueda} onChange={(e) => {
+            <input type="text" placeholder="Buscar áreas..." value={busqueda} onChange={(e) => {
             setBusqueda(e.target.value);
             setPaginaActual(1);
           }} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
           </div>
           <button onClick={abrirModalNuevo} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
             <Plus className="w-5 h-5" />
-            Agregar Area
+            Agregar Área
           </button>
         </div>
       </div>

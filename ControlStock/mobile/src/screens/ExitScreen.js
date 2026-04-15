@@ -72,7 +72,7 @@ export function ExitScreen() {
         Alert.alert('Aviso de Stock', (res.mensaje || 'No hay stock en esta ubicación para el producto seleccionado.') + extraInfo);
       }
     } catch(e) {
-      Alert.alert('Error', 'No se pudo realizar la validación con el servidor.');
+      Alert.alert('Error', e.message || 'No se pudo realizar la validación con el servidor.');
     } finally {
       setGuardando(false);
     }

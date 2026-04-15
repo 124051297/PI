@@ -14,7 +14,7 @@ return new class extends Migration
 
         Schema::create('notificaciones', function (Blueprint $table) {
             $table->id();
-            $table->unsignedInteger('id_usuario')->nullable();
+            $table->unsignedBigInteger('id_usuario')->nullable();
             $table->string('titulo');
             $table->text('mensaje');
             $table->string('tipo')->default('info');

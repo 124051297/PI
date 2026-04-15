@@ -43,7 +43,7 @@ export function Configuracion() {
       updateUser({ ...user, ...updatedUser, foto_perfil: photoUrl, ultima_modificacion: new Date().toISOString() });
       setFotoPerfil(photoUrl);
       setFotoPerfilFile(null);
-      setMensaje({ tipo: 'success', texto: 'Perfil actualizado con exito' });
+      setMensaje({ tipo: 'success', texto: 'Perfil actualizado con éxito' });
       setTimeout(() => setMensaje(null), 3000);
     } catch (error) {
       setMensaje({ tipo: 'error', texto: error.message || 'Error al actualizar perfil' });
@@ -55,17 +55,17 @@ export function Configuracion() {
   const handleCambiarContrasena = async (e) => {
     e.preventDefault();
     if (contrasenaNueva !== confirmarContrasena) {
-      setMensaje({ tipo: 'error', texto: 'Las contrasenas no coinciden' });
+      setMensaje({ tipo: 'error', texto: 'Las contraseñas no coinciden' });
       return;
     }
     if (contrasenaNueva.length < 6) {
-      setMensaje({ tipo: 'error', texto: 'La contrasena debe tener al menos 6 caracteres' });
+      setMensaje({ tipo: 'error', texto: 'La contraseña debe tener al menos 6 caracteres' });
       return;
     }
 
     const success = await updatePassword(contrasenaActual, contrasenaNueva);
     if (success) {
-      setMensaje({ tipo: 'success', texto: 'Contrasena actualizada correctamente' });
+      setMensaje({ tipo: 'success', texto: 'Contraseña actualizada correctamente' });
       setContrasenaActual('');
       setContrasenaNueva('');
       setConfirmarContrasena('');
@@ -121,8 +121,8 @@ export function Configuracion() {
           <ArrowLeft className="w-6 h-6" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Configuracion de Cuenta</h1>
-          <p className="text-gray-500 mt-1">Administra tu perfil, contrasena y preferencias</p>
+          <h1 className="text-2xl font-bold text-gray-900">Configuración de Cuenta</h1>
+          <p className="text-gray-500 mt-1">Administra tu perfil, contraseña y preferencias</p>
         </div>
       </div>
 
@@ -194,23 +194,23 @@ export function Configuracion() {
               <Lock className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Cambiar Contrasena</h2>
-              <p className="text-sm text-gray-500">Actualiza tu contrasena sin salir del dashboard</p>
+              <h2 className="text-lg font-bold text-gray-900">Cambiar Contraseña</h2>
+              <p className="text-sm text-gray-500">Actualiza tu contraseña sin salir del dashboard</p>
             </div>
           </div>
 
           <form onSubmit={handleCambiarContrasena} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Contrasena Actual</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Contraseña Actual</label>
               <input type="password" value={contrasenaActual} onChange={(e) => setContrasenaActual(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" required />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Nueva Contrasena</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Nueva Contraseña</label>
               <input type="password" value={contrasenaNueva} onChange={(e) => setContrasenaNueva(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" required />
-              <p className="text-xs text-gray-500 mt-1">Minimo 6 caracteres</p>
+              <p className="text-xs text-gray-500 mt-1">Mínimo 6 caracteres</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Confirmar Nueva Contrasena</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Confirmar Nueva Contraseña</label>
               <input type="password" value={confirmarContrasena} onChange={(e) => setConfirmarContrasena(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" required />
             </div>
 
@@ -224,8 +224,8 @@ export function Configuracion() {
           <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
             <h3 className="text-sm font-semibold text-gray-900 mb-2">Recomendaciones:</h3>
             <ul className="text-xs text-gray-600 space-y-1">
-              <li>- Usa una combinacion de letras, numeros y simbolos</li>
-              <li>- Cambia tu contrasena regularmente</li>
+              <li>- Usa una combinación de letras, números y símbolos</li>
+              <li>- Cambia tu contraseña regularmente</li>
             </ul>
           </div>
         </div>

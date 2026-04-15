@@ -52,7 +52,7 @@ class EntradaController extends Controller
 
                 if (!$idUbicacion) {
                     throw ValidationException::withMessages([
-                        'items' => ['No existe una ubicacion registrada para guardar la entrada.'],
+                        'items' => ['No existe una ubicación registrada para guardar la entrada.'],
                     ]);
                 }
 
@@ -75,7 +75,7 @@ class EntradaController extends Controller
             SystemLogger::log(
                 'Registrar entrada',
                 'Entrada',
-                'Se registro la entrada #' . $entrada->id_entrada . ' en el area ' . ($entrada->area?->nombre ?? 'N/A') . ' con ' . count($validated['items']) . ' producto(s).'
+                'Se registró la entrada #' . $entrada->id_entrada . ' en el área ' . ($entrada->area?->nombre ?? 'N/A') . ' con ' . count($validated['items']) . ' producto(s).'
             );
 
             return response()->json([
@@ -97,7 +97,7 @@ class EntradaController extends Controller
         SystemLogger::log(
             'Actualizar entrada',
             'Entrada',
-            'Se actualizo la entrada #' . $item->id_entrada . '.'
+            'Se actualizó la entrada #' . $item->id_entrada . '.'
         );
         return response()->json($item);
     }
@@ -110,7 +110,7 @@ class EntradaController extends Controller
         SystemLogger::log(
             'Eliminar entrada',
             'Entrada',
-            'Se elimino la entrada #' . $id . '.'
+            'Se eliminó la entrada #' . $id . '.'
         );
         return response()->json(null, 204);
     }

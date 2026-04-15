@@ -40,9 +40,9 @@ export function Productos() {
     if (!productos) return [];
     const set = new Set();
     productos.forEach((p) => {
-      if (p.area && p.area !== 'Sin Area') set.add(p.area);
+      if (p.area && p.area !== 'Sin Área') set.add(p.area);
       p.ubicaciones_detalle?.forEach((u) => {
-        if (u.area && u.area !== 'Sin Area') set.add(u.area);
+        if (u.area && u.area !== 'Sin Área') set.add(u.area);
       });
     });
     return [...set].sort();
@@ -52,7 +52,7 @@ export function Productos() {
     if (!productos) return [];
     const set = new Set();
     productos.forEach((p) => {
-      if (p.ubicacion && p.ubicacion !== 'Sin Ubicacion') set.add(p.ubicacion);
+      if (p.ubicacion && p.ubicacion !== 'Sin Ubicación') set.add(p.ubicacion);
       p.ubicaciones_detalle?.forEach((u) => {
         if (u.codigo_ubicacion) set.add(u.codigo_ubicacion);
       });
@@ -116,7 +116,7 @@ export function Productos() {
   };
 
   const handleEliminar = async (id) => {
-    if (!window.confirm('Estas seguro de eliminar este producto? Esta accion no se puede deshacer.')) {
+    if (!window.confirm('¿Estás seguro de eliminar este producto? Esta acción no se puede deshacer.')) {
       return;
     }
 
@@ -236,7 +236,7 @@ export function Productos() {
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                   <MapPin className="w-3.5 h-3.5 inline mr-1" />
-                  Ubicacion
+                  Ubicación
                 </label>
                 <div className="relative">
                   <select value={filtroUbicacion} onChange={(e) => setFiltroUbicacion(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none bg-white pr-8 text-sm">
@@ -257,7 +257,7 @@ export function Productos() {
                     <option value="todos">Todos los niveles</option>
                     <option value="normal">Stock normal</option>
                     <option value="bajo">Bajo stock</option>
-                    <option value="critico">Stock critico</option>
+                    <option value="critico">Stock crítico</option>
                   </select>
                   <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
@@ -350,7 +350,7 @@ export function Productos() {
                               {producto.ubicaciones_detalle.map((ubicacion, index) => <div key={index} className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                                   <div className="flex justify-between items-start">
                                     <div>
-                                      <p className="text-xs font-semibold text-gray-400 uppercase">Area</p>
+                                      <p className="text-xs font-semibold text-gray-400 uppercase">Área</p>
                                       <p className="text-sm font-medium text-gray-800">{ubicacion.area}</p>
                                     </div>
                                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${ubicacion.stock_en_ubicacion < producto.stockMinimo * 0.3 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
@@ -433,7 +433,7 @@ export function Productos() {
                   <input type="number" name="stockMinimo" defaultValue={productoEditar?.stockMinimo} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder="0" min="0" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Area principal</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Área principal</label>
                   <select name="id_area" defaultValue={getDefaultAreaId()} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
                     <option value="">Seleccionar</option>
                     {areas?.map((area) => <option key={area.id} value={area.id}>{area.nombre}</option>)}
